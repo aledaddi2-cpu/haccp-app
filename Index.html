@@ -3,175 +3,221 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Registro Temperature — HACCP</title>
+<title>Registro Temperature HACCP</title>
+<!-- Libreria per generare il file Excel -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --navy: #1A3A5C;
-    --blue: #2E6DA4;
-    --blue-lt: #D6E4F0;
-    --blue-pale: #EAF3FA;
-    --teal: #0D5C6B;
-    --teal-lt: #D0EEF3;
-    --green: #2D6A0E;
-    --green-lt: #E9F5E0;
-    --amber: #7A4700;
-    --amber-lt: #FEF3D7;
-    --red: #9B1C1C;
-    --red-lt: #FEE2E2;
-    --gray: #f0f4f8;
-    --border: #dde3ea;
-    --text: #1a202c;
-    --text2: #4a5568;
+    --navy: #1A3A5C; --blue: #2E6DA4; --teal: #0D5C6B;
+    --green: #2D6A0E; --red: #9B1C1C; --gray: #f0f4f8;
+    --border: #dde3ea; --text: #1a202c;
   }
 
   body {
-    font-family: system-ui, -apple-system, Arial, sans-serif;
-    background: var(--gray);
-    color: var(--text);
-    max-width: 480px;
-    margin: 0 auto;
-    min-height: 100vh;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--gray); color: var(--text);
+    max-width: 500px; margin: 0 auto; min-height: 100vh;
+    padding: 10px;
   }
 
-  .screen { display: none; padding: 1.5rem 1rem; }
+  .screen { display: none; padding: 10px; }
   .screen.active { display: block; }
 
-  input[type=text], input[type=number], input[type=datetime-local] {
-    font-family: inherit;
-    font-size: 15px;
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: #fff;
-    color: var(--text);
-    outline: none;
+  h1, h2 { color: var(--navy); margin-bottom: 15px; }
+
+  .card {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 12px; padding: 15px; margin-bottom: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   }
 
-  input:focus {
-    box-shadow: 0 0 0 3px #378ADD33;
-    border-color: #378ADD;
+  .form-label { font-size: 13px; font-weight: bold; color: #4a5568; display: block; margin-bottom: 5px; }
+  
+  input, select {
+    width: 100%; padding: 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 16px; margin-bottom: 10px;
   }
 
   button {
-    font-family: inherit;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: transparent;
-    color: var(--text);
-    font-size: 14px;
-    padding: 8px 14px;
-    transition: background .15s, transform .1s;
-    -webkit-tap-highlight-color: transparent;
+    width: 100%; padding: 14px; border-radius: 8px; border: none;
+    font-size: 15px; font-weight: bold; cursor: pointer; transition: opacity 0.2s;
+    margin-top: 5px;
   }
 
-  button:hover { background: #e8eef5; }
-  button:active { transform: scale(0.97); }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-outline { background: white; color: var(--navy); border: 2px solid var(--navy); }
+  .btn-danger { background: #fff; color: var(--red); border: 1px solid var(--red); margin-top: 20px; }
+  
+  .log-row { display: flex; justify-content: space-between; align-items: center; }
+  .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
 
-  .btn-primary {
-    background: var(--navy);
-    color: #fff;
-    border-color: var(--navy);
-  }
-
-  .btn-teal {
-    background: var(--teal);
-    color: #fff;
-    border-color: var(--teal);
-  }
-
-  .btn-green {
-    background: var(--green);
-    color: #E9F5E0;
-    border-color: #1f4d0a;
-  }
-
-  .btn-amber {
-    background: var(--amber);
-    color: #FEF3D7;
-    border-color: #5a3400;
-  }
-
-  .btn-block { width: 100%; padding: 12px; font-size: 15px; font-weight: 600; }
-  .btn-dashed { border-style: dashed; width: 100%; padding: 10px; font-weight: 500; }
-  .btn-ghost { background: none; border: none; color: var(--text2); font-size: 13px; padding: 4px 10px; }
-  .btn-icon { background: none; border: none; color: #c00; font-size: 13px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; }
-  .btn-back { padding: 4px 10px; font-size: 13px; }
-
-  .form-group {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 1rem;
-  }
-
-  .form-label {
-    font-size: 13px;
-    color: var(--text2);
-    display: block;
-    margin-bottom: 6px;
-  }
-
-  .type-row { display: flex; gap: 10px; margin-bottom: 10px; }
-
-  .type-btn {
-    flex: 1;
-    padding: 12px 8px;
-    border-radius: 10px;
-    border: 2px solid var(--border);
-    background: #fff;
-  }
-
-  .type-btn.frigo.selected {
-    border-color: var(--navy);
-    background: var(--blue-pale);
-  }
-
-  .type-btn.gelo.selected {
-    border-color: var(--teal);
-    background: var(--teal-lt);
-  }
-
-  .setup-item {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem;
-    margin-bottom: .75rem;
-  }
-
-  .setup-item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text2);
-  }
-
-  .btn-remove {
-    background: none;
-    border: none;
-    color: #c00;
-    font-size: 12px;
-    cursor: pointer;
-  }
+  @media print { .no-print { display: none !important; } }
 </style>
 </head>
-
 <body>
 
+<!-- SCHERMATA 1: CONFIGURAZIONE -->
 <div id="screen-setup" class="screen active">
-  <h1 style="font-size:20px;margin-bottom:8px;">❄ Registro temperature</h1>
-  <p style="font-size:13px;color:#666;margin-bottom:20px;">Configura i tuoi apparecchi</p>
+  <h1>⚙️ Configurazione</h1>
+  <p style="margin-bottom: 15px; font-size: 14px;">Aggiungi i frigoriferi e i congelatori del tuo locale.</p>
+  <div id="setup-container"></div>
+  <button class="btn-outline" onclick="addSetupItem()">+ Aggiungi Apparecchio</button>
+  <button class="btn-primary" onclick="saveSetup()" style="margin-top: 20px;">Salva e Inizia</button>
+</div>
 
-  <div id="setup-items"></div>
+<!-- SCHERMATA 2: REGISTRO GIORNALIERO -->
+<div id="screen-main" class="screen">
+  <div style="display:flex; justify-content: space-between; align-items: center;">
+    <h2>📝 Registro</h2>
+    <button onclick="showSetup()" style="width:auto; padding: 5px 10px; font-size: 12px;">Modifica Lista</button>
+  </div>
+  
+  <p id="display-date" style="font-weight: bold; margin-bottom: 15px; color: var(--blue);"></p>
+  
+  <div id="input-container"></div>
 
-  <button type="button" class="btn-dashed" onclick="addSetupItem()" style="margin-bottom:1
+  <div class="no-print" style="margin-top: 30px;">
+    <button class="btn-primary" onclick="exportToExcel()">📥 Scarica Storico Excel</button>
+    <button class="btn-outline" onclick="window.print()" style="margin-top: 10px;">🖨️ Stampa PDF</button>
+    <button class="btn-danger" onclick="clearLogs()">🗑️ Cancella Storico Dati</button>
+  </div>
+</div>
+
+<script>
+  // Caricamento dati da localStorage (permanenti sul browser)
+  let config = JSON.parse(localStorage.getItem('haccp_config')) || [];
+  let logs = JSON.parse(localStorage.getItem('haccp_logs')) || [];
+
+  function init() {
+    if (config.length > 0) {
+      showScreen('screen-main');
+      renderMain();
+    } else {
+      addSetupItem(); // Mostra almeno un campo all'inizio
+    }
+  }
+
+  // --- FUNZIONI DI SETUP ---
+  function addSetupItem(name = "", type = "frigo") {
+    const container = document.getElementById('setup-container');
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `
+      <label class="form-label">Nome Apparecchio (es. Frigo Cucina)</label>
+      <input type="text" class="setup-name" value="${name}" placeholder="Nome...">
+      <label class="form-label">Tipo</label>
+      <select class="setup-type">
+        <option value="frigo" ${type === 'frigo' ? 'selected' : ''}>Frigorifero (Max +4°C)</option>
+        <option value="gelo" ${type === 'gelo' ? 'selected' : ''}>Congelatore (Max -18°C)</option>
+      </select>
+    `;
+    container.appendChild(div);
+  }
+
+  function saveSetup() {
+    const names = document.querySelectorAll('.setup-name');
+    const types = document.querySelectorAll('.setup-type');
+    config = [];
+    names.forEach((n, i) => {
+      if(n.value.trim() !== "") {
+        config.push({ name: n.value.trim(), type: types[i].value });
+      }
+    });
+    localStorage.setItem('haccp_config', JSON.stringify(config));
+    showScreen('screen-main');
+    renderMain();
+  }
+
+  function showSetup() {
+    document.getElementById('setup-container').innerHTML = '';
+    if(config.length === 0) addSetupItem();
+    else config.forEach(c => addSetupItem(c.name, c.type));
+    showScreen('screen-setup');
+  }
+
+  // --- FUNZIONI DEL REGISTRO ---
+  function renderMain() {
+    const container = document.getElementById('input-container');
+    const dateEl = document.getElementById('display-date');
+    const today = new Date().toLocaleDateString('it-IT');
+    dateEl.innerText = "Oggi: " + today;
+    container.innerHTML = '';
+
+    config.forEach(item => {
+      // Cerca l'ultima temperatura registrata oggi per questo frigo
+      const lastEntry = [...logs].reverse().find(l => l.name === item.name && l.date === today);
+      
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="log-row">
+          <div>
+            <strong>${item.name}</strong><br>
+            <small style="color:#666">${item.type === 'frigo' ? 'Limite +4°C' : 'Limite -18°C'}</small>
+          </div>
+          <div style="text-align: right;">
+            <input type="number" step="0.1" placeholder="°C" 
+              style="width: 100px; margin-bottom: 0;"
+              onchange="addEntry('${item.name}', '${item.type}', this.value)">
+          </div>
+        </div>
+        ${lastEntry ? `<div style="margin-top:10px; font-size:12px; color:var(--teal);">
+          ✅ Ultima: ${lastEntry.temp}°C alle ${lastEntry.time}
+        </div>` : ''}
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function addEntry(name, type, temp) {
+    if(temp === "") return;
+    const now = new Date();
+    const entry = {
+      date: now.toLocaleDateString('it-IT'),
+      time: now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+      name: name,
+      type: type,
+      temp: parseFloat(temp),
+      status: (type === 'frigo' && temp <= 4) || (type === 'gelo' && temp <= -18) ? "A NORMA" : "ANOMALIA"
+    };
+    logs.push(entry);
+    localStorage.setItem('haccp_logs', JSON.stringify(logs));
+    renderMain(); // Rinfresca la lista per mostrare l'ultimo inserimento
+  }
+
+  // --- ESPORTAZIONE E UTILS ---
+  function exportToExcel() {
+    if(logs.length === 0) return alert("Nessun dato registrato.");
+    const ws = XLSX.utils.json_to_sheet(logs.map(l => ({
+      "Data": l.date,
+      "Ora": l.time,
+      "Apparecchio": l.name,
+      "Tipo": l.type,
+      "Temp (°C)": l.temp,
+      "Esito": l.status
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Registro_HACCP");
+    XLSX.writeFile(wb, "Registro_HACCP_Completo.xlsx");
+  }
+
+  function clearLogs() {
+    if(confirm("Vuoi davvero cancellare tutto lo storico delle temperature?")) {
+      logs = [];
+      localStorage.removeItem('haccp_logs');
+      renderMain();
+    }
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  init();
+</script>
+
+</body>
+</html>
