@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>HACCP Cloud PRO</title>
+<title>HACCP Cloud Professional</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,61 +26,68 @@
 </head>
 <body>
 
-<!-- SETUP -->
+<!-- SCHERMATA CONFIGURAZIONE -->
 <div id="screen-setup" class="screen">
-  <h2>⚙️ Configurazione</h2>
+  <h2>⚙️ Configurazione Locali</h2>
+  <p style="margin-bottom: 10px; font-size: 14px; color: #555;">Inserisci gli apparecchi e assegnali alla zona corretta.</p>
   <div id="setup-container"></div>
-  <button class="btn-outline" onclick="addSetupItem()">+ Aggiungi Frigo/Gelo</button>
+  <button class="btn-outline" onclick="addSetupItem()">+ Aggiungi Apparecchio</button>
   <button class="btn-primary" onclick="saveSetup()" style="margin-top:20px;">Salva e Inizia</button>
   <button class="btn-danger" onclick="resetApp()">🗑️ Reset Totale App</button>
 </div>
 
-<!-- MAIN -->
+<!-- SCHERMATA PRINCIPALE -->
 <div id="screen-main" class="screen active">
   <h2 style="margin-bottom:15px;">📝 Registro HACCP</h2>
   <div class="area-selector">
     <button id="btn-CUCINA" class="area-btn active" onclick="setArea('CUCINA')">🍳 CUCINA</button>
     <button id="btn-BAR" class="area-btn" onclick="setArea('BAR')">☕ BAR</button>
-    <button id="btn-RISTORANTE" class="area-btn" onclick="setArea('RISTORANTE')">🍽️ RISTO</button>
+    <button id="btn-RISTORANTE" class="area-btn" onclick="setArea('RISTORANTE')">🍽️ RISTORANTE</button>
   </div>
+  
   <div id="input-container"></div>
-  <div style="margin-top:25px;">
+  
+  <div style="margin-top: 25px;">
     <button class="btn-outline" onclick="showSetupScreen()">⚙️ Modifica Apparecchi</button>
-    <button class="btn-primary" onclick="showScreen('screen-history'); loadCloudData()" style="margin-top:10px;">📜 Storico Cloud</button>
+    <button class="btn-primary" onclick="showScreen('screen-history'); loadCloudData()" style="margin-top: 10px;">📜 Storico Cloud</button>
   </div>
 </div>
 
-<!-- HISTORY -->
+<!-- SCHERMATA STORICO -->
 <div id="screen-history" class="screen">
   <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom:15px;">
-    <h2>☁️ Storico Cloud</h2>
+    <h2>☁️ Storico</h2>
     <button onclick="showScreen('screen-main')" style="width:auto; padding:8px 15px;">⬅️ Indietro</button>
   </div>
   <select id="filter-area" onchange="renderHistoryTable()" style="margin-bottom:15px;">
     <option value="ALL">Tutti i locali</option>
-    <option value="CUCINA">Solo Cucina</option>
-    <option value="BAR">Solo Bar</option>
-    <option value="RISTORANTE">Solo Ristorante</option>
+    <option value="CUCINA">Cucina</option>
+    <option value="BAR">Bar</option>
+    <option value="RISTORANTE">Ristorante</option>
   </select>
   <div class="card" style="padding:0; overflow-x:auto;">
     <table class="history-table">
-      <thead><tr><th>Data/Ora</th><th>Locale</th><th>Nome</th><th>Temp</th></tr></thead>
+      <thead><tr><th>Ora</th><th>Locale</th><th>Nome</th><th>Temp</th></tr></thead>
       <tbody id="history-body"></tbody>
     </table>
   </div>
 </div>
 
 <script>
-  // STRINGA GSH
-  const G_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZsu2-x5UrResgnArJvE60zwhhtezUoRoG64cphvxPGWukuvOxdvDQguTrrKpYhGSH/exec";
+  // IL TUO NUOVO URL GOOGLE
+  const G_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxM3FjKkuWKcklt-Tpc9DGwvjssl16LcHROgzGATV8ThbZwQodYr21B0Stnk-VoAcmI/exec";
   
   let config = JSON.parse(localStorage.getItem('haccp_config')) || [];
   let currentArea = 'CUCINA';
   let cloudData = [];
 
   function init() {
-    if (config.length > 0) { showScreen('screen-main'); renderMain(); }
-    else { showSetupScreen(); }
+    if (config.length > 0) { 
+      showScreen('screen-main'); 
+      renderMain(); 
+    } else { 
+      showSetupScreen(); 
+    }
   }
 
   function setArea(area) {
@@ -92,8 +99,11 @@
 
   function showSetupScreen() {
     document.getElementById('setup-container').innerHTML = '';
-    if (config.length === 0) addSetupItem();
-    else config.forEach(c => addSetupItem(c.name, c.type, c.area));
+    if (config.length === 0) {
+      addSetupItem();
+    } else {
+      config.forEach(c => addSetupItem(c.name, c.type, c.area));
+    }
     showScreen('screen-setup');
   }
 
@@ -121,14 +131,17 @@
     const areas = document.querySelectorAll('.setup-area');
     config = [];
     names.forEach((n, i) => { 
-      if(n.value.trim() !== "") config.push({ name: n.value.trim(), type: types[i].value, area: areas[i].value }); 
+      if(n.value.trim() !== "") {
+        config.push({ name: n.value.trim(), type: types[i].value, area: areas[i].value }); 
+      }
     });
     localStorage.setItem('haccp_config', JSON.stringify(config));
-    showScreen('screen-main'); renderMain();
+    showScreen('screen-main'); 
+    renderMain();
   }
 
   function resetApp() {
-    if(confirm("Vuoi resettare la lista frigoriferi?")) {
+    if(confirm("Attenzione: vuoi cancellare tutti i frigoriferi salvati?")) {
       localStorage.removeItem('haccp_config');
       location.reload();
     }
@@ -138,10 +151,12 @@
     const container = document.getElementById('input-container');
     container.innerHTML = '';
     const filtered = config.filter(c => c.area === currentArea);
+    
     if(filtered.length === 0) {
-      container.innerHTML = `<p style="text-align:center; padding:20px;">Nessun frigo in ${currentArea}.</p>`;
+      container.innerHTML = `<p style="text-align:center; padding:20px; color:#666;">Nessun apparecchio configurato per <b>${currentArea}</b>.<br><br>Clicca "Modifica Apparecchi" per aggiungerli.</p>`;
       return;
     }
+
     filtered.forEach(item => {
       const card = document.createElement('div');
       card.className = 'card';
@@ -157,35 +172,46 @@
   async function sendData(name, type, el) {
     const val = el.value; if(!val) return;
     el.disabled = true;
+    el.style.opacity = "0.5";
     const now = new Date();
     const entry = {
       date: now.toLocaleDateString('it-IT'),
       time: now.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}),
-      name, type, temp: val, area: currentArea,
+      name: name, type: type, temp: val, area: currentArea,
       status: (type==='frigo' && val<=4) || (type==='gelo' && val<=-18) ? "OK" : "ERR"
     };
+
     try {
       await fetch(G_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(entry) });
-      alert("✅ Salvato!");
+      alert("✅ Salvato nel Cloud!");
       el.value = "";
-    } catch (e) { alert("❌ Errore!"); }
-    el.disabled = false;
+    } catch (e) { 
+      alert("❌ Errore connessione!"); 
+    } finally {
+      el.disabled = false;
+      el.style.opacity = "1";
+    }
   }
 
   async function loadCloudData() {
+    const body = document.getElementById('history-body');
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center">Caricamento...</td></tr>';
     try {
       const res = await fetch(G_SCRIPT_URL);
       cloudData = await res.json();
       renderHistoryTable();
-    } catch (e) { alert("Errore caricamento storico"); }
+    } catch (e) { 
+      body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red">Errore Cloud</td></tr>';
+    }
   }
 
   function renderHistoryTable() {
     const filter = document.getElementById('filter-area').value;
     const body = document.getElementById('history-body');
     body.innerHTML = '';
-    cloudData.filter(r => filter === 'ALL' || r[6] === filter).reverse().forEach(r => {
-      body.innerHTML += `<tr><td>${r[0]} ${r[1]}</td><td>${r[6]||''}</td><td>${r[2]}</td><td>${r[4]}°</td></tr>`;
+    const filtered = cloudData.filter(r => filter === 'ALL' || r[6] === filter);
+    [...filtered].reverse().forEach(r => {
+      body.innerHTML += `<tr><td>${r[0]} ${r[1]}</td><td>${r[6]||''}</td><td>${r[2]}</td><td style="color:${r[5]==='OK'?'green':'red'}">${r[4]}°</td></tr>`;
     });
   }
 
