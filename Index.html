@@ -702,50 +702,57 @@ function renderDevices() {
   const list = document.getElementById('device-list');
   if (!list) return;
   list.innerHTML = '';
-  const filtered = config.filter(c => (c.area||'').trim().toUpperCase() === currentArea.trim().toUpperCase());
+  function normArea(s) {
+    return (s || '').replace(/[^A-Za-z]/g, '').toUpperCase();
+  }
+  const filtered = config.filter(c => normArea(c.area) === normArea(currentArea));
   if (!filtered.length) {
-    list.innerHTML = '<div class="empty-state"><div class="ic">🔧</div><p>Nessun apparecchio in questa zona.<br>Aggiungilo dal tab Setup.</p></div>';
+    const es = document.createElement('div');
+    es.className = 'empty-state';
+    es.innerHTML = '<div class="ic">&#128295;</div><p>Nessun apparecchio in questa zona.<br>Aggiungilo dal tab Setup.</p>';
+    list.appendChild(es);
     updateQueueInfo(); return;
   }
   const today = new Date().toLocaleDateString('it-IT');
-  const todayRows = cloudData.filter(r=>r[0]===today);
-  filtered.forEach(item => {
-    const cloudLast = [...todayRows].filter(r=>r[2]===item.name).pop();
+  const todayRows = cloudData.filter(r => r[0] === today);
+  filtered.forEach(function(item) {
+    const cloudLast = todayRows.filter(r => r[2] === item.name).pop();
     const last = cloudLast
-      ? { temp: parseFloat(cloudLast[4]), ok: cloudLast[5]==='OK' }
+      ? { temp: parseFloat(cloudLast[4]), ok: cloudLast[5] === 'OK' }
       : lastTemps[item.name];
-    const soglia    = item.type==='frigo' ? '+4°C' : '-18°C';
-    const lastLabel = last ? 'Ult: ' + last.temp + '° ' + (last.ok?'✓':'⚠') : 'Nessuna ril.';
-    const id        = item.name.replace(/[^a-z0-9]/gi,'_');
-    const div       = document.createElement('div');
-    div.className   = 'device-row' + (last && !last.ok ? ' has-err' : '');
+    const soglia = item.type === 'frigo' ? '+4°C' : '-18°C';
+    const lastTxt = last ? ('Ult: ' + last.temp + String.fromCharCode(176) + ' ' + (last.ok ? String.fromCharCode(10003) : '!')) : 'Nessuna ril.';
+    const id = item.name.replace(/[^a-z0-9]/gi, '_');
 
-    const iconDiv = document.createElement('div');
-    iconDiv.className = 'device-icon' + (item.type==='frigo' ? '' : ' gelo');
-    iconDiv.textContent = item.type==='frigo' ? '❄️' : '🧊';
+    const row = document.createElement('div');
+    row.className = 'device-row' + (last && !last.ok ? ' has-err' : '');
 
-    const infoDiv = document.createElement('div');
-    infoDiv.style.cssText = 'flex:1;min-width:0;';
+    const icon = document.createElement('div');
+    icon.className = 'device-icon' + (item.type !== 'frigo' ? ' gelo' : '');
+    icon.textContent = item.type === 'frigo' ? '❄️' : '🧊';
 
-    const nameDiv = document.createElement('div');
-    nameDiv.className = 'device-name';
-    nameDiv.textContent = item.name;
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0;';
 
-    const metaDiv = document.createElement('div');
-    metaDiv.className = 'device-meta';
-    metaDiv.textContent = 'Soglia ' + soglia + ' · ' + lastLabel;
+    const nameEl = document.createElement('div');
+    nameEl.className = 'device-name';
+    nameEl.textContent = item.name;
 
-    const warnDiv = document.createElement('div');
-    warnDiv.className = 'temp-warn';
-    warnDiv.id = 'tw-' + id;
-    warnDiv.textContent = '⚠ Fuori soglia!';
+    const metaEl = document.createElement('div');
+    metaEl.className = 'device-meta';
+    metaEl.textContent = 'Soglia ' + soglia + ' · ' + lastTxt;
 
-    infoDiv.appendChild(nameDiv);
-    infoDiv.appendChild(metaDiv);
-    infoDiv.appendChild(warnDiv);
+    const warnEl = document.createElement('div');
+    warnEl.className = 'temp-warn';
+    warnEl.id = 'tw-' + id;
+    warnEl.textContent = '⚠ Fuori soglia!';
 
-    const rightDiv = document.createElement('div');
-    rightDiv.className = 'device-right';
+    info.appendChild(nameEl);
+    info.appendChild(metaEl);
+    info.appendChild(warnEl);
+
+    const right = document.createElement('div');
+    right.className = 'device-right';
 
     const inp = document.createElement('input');
     inp.className = 'temp-input';
@@ -753,23 +760,24 @@ function renderDevices() {
     inp.type = 'number';
     inp.step = '0.1';
     inp.placeholder = '°C';
-    const itemName = item.name;
-    const itemType = item.type;
-    inp.addEventListener('input', function(){ checkWarn(itemName, itemType, this); });
+    (function(n, t) {
+      inp.addEventListener('input', function() { checkWarn(n, t, this); });
+    })(item.name, item.type);
 
     const btn = document.createElement('button');
     btn.className = 'send-btn';
     btn.id = 'sbtn-' + id;
     btn.innerHTML = '<svg viewBox="0 0 16 16"><path d="M2 8l12-6-6 12V9L2 8z"/></svg>';
-    btn.addEventListener('click', function(){ sendData(itemName, itemType, currentArea); });
+    (function(n, t, a) {
+      btn.addEventListener('click', function() { sendData(n, t, a); });
+    })(item.name, item.type, currentArea);
 
-    rightDiv.appendChild(inp);
-    rightDiv.appendChild(btn);
-
-    div.appendChild(iconDiv);
-    div.appendChild(infoDiv);
-    div.appendChild(rightDiv);
-    list.appendChild(div);
+    right.appendChild(inp);
+    right.appendChild(btn);
+    row.appendChild(icon);
+    row.appendChild(info);
+    row.appendChild(right);
+    list.appendChild(row);
   });
   updateQueueInfo();
 }
