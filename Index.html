@@ -577,7 +577,10 @@ function loadConfigLocal() {
 async function pullTemperature() {
   try {
     const r = await fetch(G + '?tipo=temperature');
-    const _cd = await r.json(); cloudData = Array.isArray(_cd) ? _cd : [];
+    const _cd = await r.json();
+    // Salta la prima riga di intestazione, tieni solo righe dati
+    cloudData = Array.isArray(_cd) ? _cd.slice(1).filter(r => Array.isArray(r) && r[0] && r[0] !== 'Data') : [];
+    localStorage.setItem('h_clouddata', JSON.stringify(cloudData));
   } catch(e) {
     cloudData = safeArr('h_clouddata');
   }
@@ -924,7 +927,7 @@ async function saveAction() {
 function buildDash() {
   if(!Array.isArray(cloudData))cloudData=[];
     const today = new Date().toLocaleDateString('it-IT');
-  const rows  = cloudData.filter(r=>Array.isArray(r)&&r[0]===today&&r[5]);
+  const rows  = cloudData.filter(r=>Array.isArray(r)&&r[0]===today&&r[5]&&r[0]!=='Data');
   const errs  = rows.filter(r=>r[5]==='ERR');
   const okDev = config.filter(c=>{
     const l = [...rows].filter(r=>r[2]===c.name).pop();
@@ -964,7 +967,7 @@ function buildDash() {
 
 function updateDashBadge() {
   const today = new Date().toLocaleDateString('it-IT');
-  const rows  = cloudData.filter(r=>Array.isArray(r)&&r[0]===today&&r[5]);
+  const rows  = cloudData.filter(r=>Array.isArray(r)&&r[0]===today&&r[5]&&r[0]!=='Data');
   const errs  = rows.filter(r=>r[5]==='ERR').length;
   const badge = document.getElementById('top-badge');
   badge.textContent = rows.length ? `${rows.length-errs} OK · ${errs} ERR` : 'Nessuna ril.';
