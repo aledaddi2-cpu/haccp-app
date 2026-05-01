@@ -469,24 +469,46 @@ async function syncAll() {
 }
 
 function loadFromLocal() {
-  config        = JSON.parse(localStorage.getItem('h_config'))    || [];
-  operatori     = JSON.parse(localStorage.getItem('h_operatori')) || [];
-  scheduleSlots = JSON.parse(localStorage.getItem('h_schedule'))  || [{time:"09:00",label:"Apertura"},{time:"15:00",label:"Pomeriggio"},{time:"21:00",label:"Chiusura"}];
-  aziendaCfg    = JSON.parse(localStorage.getItem('h_azienda'))   || {};
-  cloudData     = safeArr('h_clouddata');
-  cloudAzioni   = JSON.parse(localStorage.getItem('h_azioni'))    || [];
-  cloudFirme    = JSON.parse(localStorage.getItem('h_firme'))     || [];
+  function sg(key, fb) {
+    try { const v=JSON.parse(localStorage.getItem(key)); return (v!==null&&v!==undefined)?v:fb; } catch(e){return fb;}
+  }
+  config        = sg('h_config',    []); if(!Array.isArray(config)) config=[];
+  operatori     = sg('h_operatori', []); if(!Array.isArray(operatori)) operatori=[];
+  scheduleSlots = sg('h_schedule',  [{time:"09:00",label:"Apertura"},{time:"15:00",label:"Pomeriggio"},{time:"21:00",label:"Chiusura"}]);
+  aziendaCfg    = sg('h_azienda',   {});
+  cloudData     = sg('h_clouddata', []); if(!Array.isArray(cloudData)) cloudData=[];
+  cloudAzioni   = sg('h_azioni',    []); if(!Array.isArray(cloudAzioni)) cloudAzioni=[];
+  cloudFirme    = sg('h_firme',     []); if(!Array.isArray(cloudFirme)) cloudFirme=[];
   buildCorrective();
 }
 
 function saveAllLocal() {
-  localStorage.setItem('h_config',    JSON.stringify(config));
-  localStorage.setItem('h_operatori', JSON.stringify(operatori));
-  localStorage.setItem('h_schedule',  JSON.stringify(scheduleSlots));
-  localStorage.setItem('h_azienda',   JSON.stringify(aziendaCfg));
-  localStorage.setItem('h_clouddata', JSON.stringify(cloudData));
-  localStorage.setItem('h_azioni',    JSON.stringify(cloudAzioni));
-  localStorage.setItem('h_firme',     JSON.stringify(cloudFirme));
+  // Salva solo se il dato nuovo è migliore di quello già in locale
+  function saveIfBetter(key, newVal) {
+    if (!Array.isArray(newVal) && typeof newVal !== 'object') return;
+    const isArr = Array.isArray(newVal);
+    if (isArr && newVal.length === 0) {
+      // Non sovrascrivere con array vuoto se in locale c'è qualcosa
+      try {
+        const existing = JSON.parse(localStorage.getItem(key));
+        if (Array.isArray(existing) && existing.length > 0) return;
+      } catch(e) {}
+    }
+    if (!isArr && Object.keys(newVal).length === 0) {
+      try {
+        const existing = JSON.parse(localStorage.getItem(key));
+        if (existing && Object.keys(existing).length > 0) return;
+      } catch(e) {}
+    }
+    localStorage.setItem(key, JSON.stringify(newVal));
+  }
+  saveIfBetter('h_config',    config);
+  saveIfBetter('h_operatori', operatori);
+  saveIfBetter('h_schedule',  scheduleSlots);
+  saveIfBetter('h_azienda',   aziendaCfg);
+  saveIfBetter('h_clouddata', cloudData);
+  saveIfBetter('h_azioni',    cloudAzioni);
+  saveIfBetter('h_firme',     cloudFirme);
 }
 
 function setLoadingMsg(m) {
