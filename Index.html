@@ -434,6 +434,7 @@ let firmaCanvas, firmaCtx, drawing = false;
 // ═══════════════════════════════════════════════════════
 // INIT — carica tutto dal cloud, poi mostra l'app
 // ═══════════════════════════════════════════════════════
+function safeArr(key){try{const v=JSON.parse(localStorage.getItem(key));return Array.isArray(v)?v:[];}catch(e){return [];}}
 async function init() {
   setLoadingMsg('Connessione al cloud...');
   navigator.onLine ? await syncAll() : loadFromLocal();
@@ -467,7 +468,7 @@ function loadFromLocal() {
   operatori     = JSON.parse(localStorage.getItem('h_operatori')) || [];
   scheduleSlots = JSON.parse(localStorage.getItem('h_schedule'))  || [{time:"09:00",label:"Apertura"},{time:"15:00",label:"Pomeriggio"},{time:"21:00",label:"Chiusura"}];
   aziendaCfg    = JSON.parse(localStorage.getItem('h_azienda'))   || {};
-  cloudData     = JSON.parse(localStorage.getItem('h_clouddata')) || [];
+  cloudData     = safeArr('h_clouddata');
   cloudAzioni   = JSON.parse(localStorage.getItem('h_azioni'))    || [];
   cloudFirme    = JSON.parse(localStorage.getItem('h_firme'))     || [];
   buildCorrective();
@@ -549,12 +550,9 @@ function loadConfigLocal() {
 async function pullTemperature() {
   try {
     const r = await fetch(G + '?tipo=temperature');
-    const data = await r.json();
-    cloudData = Array.isArray(data) ? data : [];
+    const _cd = await r.json(); cloudData = Array.isArray(_cd) ? _cd : [];
   } catch(e) {
-    const saved = localStorage.getItem('h_clouddata');
-    try { cloudData = JSON.parse(saved) || []; } catch(e2) { cloudData = []; }
-    if (!Array.isArray(cloudData)) cloudData = [];
+    cloudData = safeArr('h_clouddata');
   }
 }
 
@@ -709,8 +707,6 @@ function renderDevices() {
     updateQueueInfo(); return;
   }
 
-  if (!Array.isArray(cloudData)) cloudData = [];
-  if (!Array.isArray(config)) config = [];
   const today = new Date().toLocaleDateString('it-IT');
   const todayRows = cloudData.filter(r => r[0] === today);
 
@@ -928,9 +924,8 @@ async function saveAction() {
 // DASHBOARD
 // ═══════════════════════════════════════════════════════
 function buildDash() {
-  if (!Array.isArray(cloudData)) cloudData = [];
-  if (!Array.isArray(config)) config = [];
-  const today = new Date().toLocaleDateString('it-IT');
+  if(!Array.isArray(cloudData))cloudData=[];
+    const today = new Date().toLocaleDateString('it-IT');
   const rows  = cloudData.filter(r=>Array.isArray(r)&&r[0]===today&&r[5]);
   const errs  = rows.filter(r=>r[5]==='ERR');
   const okDev = config.filter(c=>{
@@ -1041,7 +1036,8 @@ function deleteSlotSetup(i) {
 }
 
 function renderScheduleToday() {
-  const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  if(!Array.isArray(cloudData))cloudData=[];
+    const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
   const today=now.toLocaleDateString('it-IT');
   const rows=cloudData.filter(r=>Array.isArray(r)&&r[0]===today);
   const el=document.getElementById('schedule-today'); if(!el) return;
@@ -1066,7 +1062,8 @@ function renderScheduleToday() {
 }
 
 function checkReminderDot() {
-  const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  if(!Array.isArray(cloudData))cloudData=[];
+    const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
   const today=now.toLocaleDateString('it-IT');
   const rows=cloudData.filter(r=>Array.isArray(r)&&r[0]===today);
   const late=scheduleSlots.some(s=>{
@@ -1248,7 +1245,8 @@ function toggleErrFilter() {
 }
 
 function getFiltered() {
-  const mF=document.getElementById('filter-month').value;
+  if(!Array.isArray(cloudData))cloudData=[];
+    const mF=document.getElementById('filter-month').value;
   const aF=document.getElementById('filter-area').value;
   const dF=document.getElementById('filter-device').value;
   return cloudData.filter(r=>{
