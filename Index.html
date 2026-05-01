@@ -702,50 +702,73 @@ function renderDevices() {
   const list = document.getElementById('device-list');
   if (!list) return;
   list.innerHTML = '';
-
-  // DEBUG: mostra cosa c'è in config
-  const debugDiv = document.createElement('div');
-  debugDiv.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px;color:#333;';
-  debugDiv.innerHTML = `<strong>🔍 Debug config (${config.length} apparecchi totali):</strong><br>` +
-    (config.length === 0 ? 'config è VUOTO — premi ☁ Sincronizza nel Setup' :
-      config.map(c => `• <strong>${c.name}</strong> | area: "<em>${c.area}</em>" | tipo: ${c.type}`).join('<br>')) +
-    `<br><em>Area attiva: <strong>${currentArea}</strong></em>`;
-  list.appendChild(debugDiv);
-
   const filtered = config.filter(c => (c.area||'').trim().toUpperCase() === currentArea.trim().toUpperCase());
   if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state"><div class="ic">🔧</div><p>Nessun apparecchio in ${currentArea}.<br>Aggiungilo dal tab Setup.</p></div>`;
+    list.innerHTML = '<div class="empty-state"><div class="ic">🔧</div><p>Nessun apparecchio in questa zona.<br>Aggiungilo dal tab Setup.</p></div>';
     updateQueueInfo(); return;
   }
-  // Calcola ultima temp dal cloud (più aggiornata del localStorage)
   const today = new Date().toLocaleDateString('it-IT');
   const todayRows = cloudData.filter(r=>r[0]===today);
   filtered.forEach(item => {
-    // Cerca ultima rilevazione dal cloud
     const cloudLast = [...todayRows].filter(r=>r[2]===item.name).pop();
     const last = cloudLast
       ? { temp: parseFloat(cloudLast[4]), ok: cloudLast[5]==='OK' }
       : lastTemps[item.name];
-    const soglia   = item.type==='frigo' ? '+4°C' : '-18°C';
-    const lastLabel= last ? `Ult: <strong>${last.temp}°</strong> ${last.ok?'✓':'⚠'}` : 'Nessuna ril.';
-    const id = item.name.replace(/[^a-z0-9]/gi,'_');
-    const div = document.createElement('div');
-    div.className = 'device-row'+(last&&!last.ok?' has-err':'');
-    div.innerHTML = `
-      <div class="device-icon ${item.type}">${item.type==='frigo'?'❄️':'🧊'}</div>
-      <div style="flex:1;min-width:0;">
-        <div class="device-name">${item.name}</div>
-        <div class="device-meta">Soglia ${soglia} · ${lastLabel}</div>
-        <div class="temp-warn" id="tw-${id}">⚠ Fuori soglia!</div>
-      </div>
-      <div class="device-right">
-        <input class="temp-input" id="inp-${id}" type="number" step="0.1" placeholder="°C"
-          oninput="checkWarn('${item.name}','${item.type}',this)">
-        <button class="send-btn" id="sbtn-${id}"
-          onclick="sendData('${item.name}','${item.type}','${currentArea}')">
-          <svg viewBox="0 0 16 16"><path d="M2 8l12-6-6 12V9L2 8z"/></svg>
-        </button>
-      </div>`;
+    const soglia    = item.type==='frigo' ? '+4°C' : '-18°C';
+    const lastLabel = last ? 'Ult: ' + last.temp + '° ' + (last.ok?'✓':'⚠') : 'Nessuna ril.';
+    const id        = item.name.replace(/[^a-z0-9]/gi,'_');
+    const div       = document.createElement('div');
+    div.className   = 'device-row' + (last && !last.ok ? ' has-err' : '');
+
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'device-icon' + (item.type==='frigo' ? '' : ' gelo');
+    iconDiv.textContent = item.type==='frigo' ? '❄️' : '🧊';
+
+    const infoDiv = document.createElement('div');
+    infoDiv.style.cssText = 'flex:1;min-width:0;';
+
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'device-name';
+    nameDiv.textContent = item.name;
+
+    const metaDiv = document.createElement('div');
+    metaDiv.className = 'device-meta';
+    metaDiv.textContent = 'Soglia ' + soglia + ' · ' + lastLabel;
+
+    const warnDiv = document.createElement('div');
+    warnDiv.className = 'temp-warn';
+    warnDiv.id = 'tw-' + id;
+    warnDiv.textContent = '⚠ Fuori soglia!';
+
+    infoDiv.appendChild(nameDiv);
+    infoDiv.appendChild(metaDiv);
+    infoDiv.appendChild(warnDiv);
+
+    const rightDiv = document.createElement('div');
+    rightDiv.className = 'device-right';
+
+    const inp = document.createElement('input');
+    inp.className = 'temp-input';
+    inp.id = 'inp-' + id;
+    inp.type = 'number';
+    inp.step = '0.1';
+    inp.placeholder = '°C';
+    const itemName = item.name;
+    const itemType = item.type;
+    inp.addEventListener('input', function(){ checkWarn(itemName, itemType, this); });
+
+    const btn = document.createElement('button');
+    btn.className = 'send-btn';
+    btn.id = 'sbtn-' + id;
+    btn.innerHTML = '<svg viewBox="0 0 16 16"><path d="M2 8l12-6-6 12V9L2 8z"/></svg>';
+    btn.addEventListener('click', function(){ sendData(itemName, itemType, currentArea); });
+
+    rightDiv.appendChild(inp);
+    rightDiv.appendChild(btn);
+
+    div.appendChild(iconDiv);
+    div.appendChild(infoDiv);
+    div.appendChild(rightDiv);
     list.appendChild(div);
   });
   updateQueueInfo();
