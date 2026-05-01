@@ -379,8 +379,19 @@ textarea { resize:vertical; min-height:68px; }
   </div>
 
   <div class="separator"></div>
+  <div class="section-title">Zona pericolosa</div>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <button onclick="resetRegistrazioni()" style="width:100%;padding:13px;background:#e53935;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:14px;font-family:inherit;">
+      🗑️ Elimina tutte le registrazioni
+    </button>
+    <button onclick="resetTutto()" style="width:100%;padding:13px;background:#b71c1c;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:14px;font-family:inherit;">
+      ⚠️ Reset completo (registrazioni + apparecchi)
+    </button>
+  </div>
+
+  <div class="separator"></div>
   <p style="font-size:10px;color:var(--text-muted);word-break:break-all;background:var(--blue-light);padding:8px;border-radius:6px;line-height:1.6;">
-    🔗 Script collegato:<br>https://script.google.com/macros/s/AKfycbwQxEyVe18dSOba-aQ3fBvqQQRDjx7u_CChxVUUHP3JTJ8PGWQjRENSYPLb6sFGiNE_/exec
+    🔗 Script collegato:<br>https://script.google.com/macros/s/AKfycbxkA5R48DxI6rNb8_DXRIWs8qM2JI1-fAMSRPW3Yddz2ojqNziK5SQi85VwsOIObuMb/exec
   </p>
   <p class="sync-info" id="last-sync-label"></p>
 </div>
@@ -391,7 +402,7 @@ textarea { resize:vertical; min-height:68px; }
 // ═══════════════════════════════════════════════════════
 // COSTANTI
 // ═══════════════════════════════════════════════════════
-const G = "https://script.google.com/macros/s/AKfycbwQxEyVe18dSOba-aQ3fBvqQQRDjx7u_CChxVUUHP3JTJ8PGWQjRENSYPLb6sFGiNE_/exec";
+const G = "https://script.google.com/macros/s/AKfycbxkA5R48DxI6rNb8_DXRIWs8qM2JI1-fAMSRPW3Yddz2ojqNziK5SQi85VwsOIObuMb/exec";
 const AZIONI_PRESET = ["Prodotti spostati","Tecnico chiamato","Impostazioni corrette","Prodotti smaltiti","Porta controllata","Sbrinamento effettuato","In attesa verifica"];
 
 async function autoSyncConfig() {
