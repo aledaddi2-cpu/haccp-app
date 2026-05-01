@@ -702,7 +702,17 @@ function renderDevices() {
   const list = document.getElementById('device-list');
   if (!list) return;
   list.innerHTML = '';
-  const filtered = config.filter(c => c.area === currentArea);
+
+  // DEBUG: mostra cosa c'è in config
+  const debugDiv = document.createElement('div');
+  debugDiv.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px;color:#333;';
+  debugDiv.innerHTML = `<strong>🔍 Debug config (${config.length} apparecchi totali):</strong><br>` +
+    (config.length === 0 ? 'config è VUOTO — premi ☁ Sincronizza nel Setup' :
+      config.map(c => `• <strong>${c.name}</strong> | area: "<em>${c.area}</em>" | tipo: ${c.type}`).join('<br>')) +
+    `<br><em>Area attiva: <strong>${currentArea}</strong></em>`;
+  list.appendChild(debugDiv);
+
+  const filtered = config.filter(c => (c.area||'').trim().toUpperCase() === currentArea.trim().toUpperCase());
   if (!filtered.length) {
     list.innerHTML = `<div class="empty-state"><div class="ic">🔧</div><p>Nessun apparecchio in ${currentArea}.<br>Aggiungilo dal tab Setup.</p></div>`;
     updateQueueInfo(); return;
