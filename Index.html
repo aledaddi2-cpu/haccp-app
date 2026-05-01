@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HACCP Pro Cloud</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -332,13 +332,13 @@ label { font-size:11px; font-weight:700; color:var(--navy); text-transform:upper
   </div>
 
   <div class="separator"></div>
-  <p style="font-size:10px;color:var(--text-muted);word-break:break-all;background:var(--blue-light);padding:8px;border-radius:6px;line-height:1.6;">🔗 Google Apps Script collegato:<br>https://script.google.com/macros/s/AKfycbz7CobBEyUapgkq_8Od3o0CkFdgWsuGuOm6qfLdoFBYnx2TErI7C8Xkbp0Z-DK1gWsc/exec</p>
+  <p style="font-size:10px;color:var(--text-muted);word-break:break-all;background:var(--blue-light);padding:8px;border-radius:6px;line-height:1.6;">🔗 Google Apps Script collegato:<br>https://script.google.com/macros/s/AKfycbxV_KD1fH3TMwDFXUE9kjH5DQW8r1pA4FniA0-bOwQIT8Ew9xEp7gwIct4HEANCttXtdA/exec</p>
 </div>
 
 <div id="toast-container"></div>
 
 <script>
-const G_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7CobBEyUapgkq_8Od3o0CkFdgWsuGuOm6qfLdoFBYnx2TErI7C8Xkbp0Z-DK1gWsc/exec";
+const G_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxV_KD1fH3TMwDFXUE9kjH5DQW8r1pA4FniA0-bOwQIT8Ew9xEp7gwIct4HEANCttXtdA/exec";
 const AZIONI_PRESET = ["Prodotti spostati","Tecnico chiamato","Impostazioni corrette","Prodotti smaltiti","Porta controllata","Sbrinamento effettuato","In attesa verifica"];
 
 let config        = JSON.parse(localStorage.getItem('haccp_config_v3'))    || [];
@@ -533,22 +533,63 @@ function openModal(entry) {
 }
 function closeModalBg(e) { if(e.target.id==='modal-overlay') closeModal(); }
 function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); modalEntry=null; }
-function saveAction() {
+async function saveAction() {
   if (!modalEntry) return;
   const sel=[...document.querySelectorAll('.action-chip.selected')].map(c=>c.textContent);
   const note=document.getElementById('action-note').value.trim();
   const resp=document.getElementById('action-resp').value.trim();
   if (!sel.length&&!note) { showToast("Seleziona almeno un'azione",'warning'); return; }
+  const now=new Date();
   const key=`${modalEntry.name}_${modalEntry.date}_${modalEntry.time}`;
-  corrective[key]={azioni:sel, note, responsabile:resp, salvato:new Date().toLocaleString('it-IT')};
+  corrective[key]={azioni:sel, note, responsabile:resp, salvato:now.toLocaleString('it-IT')};
   localStorage.setItem('haccp_corrective',JSON.stringify(corrective));
+  if (isOnline) {
+    try {
+      await fetch(G_SCRIPT_URL, {
+        method:'POST', mode:'no-cors',
+        body: JSON.stringify({
+          tipo: 'azione',
+          dateAnomalia: modalEntry.date,
+          timeAnomalia: modalEntry.time,
+          apparecchio:  modalEntry.name,
+          zona:         modalEntry.area || '',
+          tempRilevata: modalEntry.temp,
+          azioni:       sel.join(', '),
+          note,
+          responsabile: resp,
+          salvatoIl:    now.toLocaleString('it-IT')
+        })
+      });
+    } catch(e) {}
+  }
   closeModal(); showToast('Azione correttiva registrata','success'); buildDash();
 }
 
 // ---- CLOUD & DASH ----
 async function loadCloudData() {
-  try { const r=await fetch(G_SCRIPT_URL); cloudData=await r.json(); buildDash(); updateDashBadge(); checkReminderDot(); }
-  catch(e) {}
+  try {
+    const [rTemp, rAzioni] = await Promise.all([
+      fetch(G_SCRIPT_URL + '?tipo=temperature'),
+      fetch(G_SCRIPT_URL + '?tipo=azioni')
+    ]);
+    cloudData = await rTemp.json();
+    // Merge azioni correttive dal cloud con quelle locali
+    const cloudAzioni = await rAzioni.json();
+    cloudAzioni.slice(1).forEach(r => { // salta intestazione
+      if (!r[0] || r[0]==='Data Anomalia') return;
+      const key = `${r[2]}_${r[0]}_${r[1]}`;
+      if (!corrective[key]) {
+        corrective[key] = {
+          azioni: (r[5]||'').split(', ').filter(Boolean),
+          note: r[6]||'',
+          responsabile: r[7]||'',
+          salvato: r[8]||''
+        };
+      }
+    });
+    localStorage.setItem('haccp_corrective', JSON.stringify(corrective));
+    buildDash(); updateDashBadge(); checkReminderDot();
+  } catch(e) {}
 }
 
 function buildDash() {
@@ -673,15 +714,30 @@ function clearFirma() {
   document.getElementById('firma-saved-msg').classList.remove('visible');
 }
 
-function saveFirma() {
+async function saveFirma() {
   const nome=document.getElementById('firma-nome-input').value.trim();
   if(!nome){showToast("Inserisci il nome dell'operatore",'warning');return;}
   const now=new Date(); const todayKey=now.toLocaleDateString('it-IT');
+  const dataUrl=firmaCanvas.toDataURL();
   const stored=JSON.parse(localStorage.getItem('haccp_firme_oggi'))||{};
   if(!stored[todayKey]) stored[todayKey]=[];
-  stored[todayKey].push({nome, data:now.toLocaleString('it-IT'), dataUrl:firmaCanvas.toDataURL()});
+  stored[todayKey].push({nome, data:now.toLocaleString('it-IT'), dataUrl});
   localStorage.setItem('haccp_firme_oggi',JSON.stringify(stored));
   document.getElementById('firma-saved-msg').classList.add('visible');
+  if (isOnline) {
+    try {
+      await fetch(G_SCRIPT_URL, {
+        method:'POST', mode:'no-cors',
+        body: JSON.stringify({
+          tipo:        'firma',
+          data:        todayKey,
+          ora:         now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
+          operatore:   nome,
+          firmaBase64: dataUrl
+        })
+      });
+    } catch(e) {}
+  }
   showToast(`Firma di ${nome} salvata`,'success');
   clearFirma(); renderFirmaScreen();
 }
