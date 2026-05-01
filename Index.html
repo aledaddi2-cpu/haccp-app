@@ -244,11 +244,6 @@ textarea { resize:vertical; min-height:68px; }
 
 <!-- REGISTRA -->
 <div id="screen-log" class="screen">
-  <div class="area-pills" id="area-pills">
-    <span class="area-pill active" onclick="setArea('CUCINA',this)">🍳 Cucina</span>
-    <span class="area-pill" onclick="setArea('BAR',this)">☕ Bar</span>
-    <span class="area-pill" onclick="setArea('RISTORANTE',this)">🍽️ Ristorante</span>
-  </div>
   <div id="device-list"></div>
   <div id="queue-info" class="queue-info"></div>
 </div>
@@ -702,82 +697,107 @@ function renderDevices() {
   const list = document.getElementById('device-list');
   if (!list) return;
   list.innerHTML = '';
-  function normArea(s) {
-    return (s || '').replace(/[^A-Za-z]/g, '').toUpperCase();
-  }
-  const filtered = config.filter(c => normArea(c.area) === normArea(currentArea));
-  if (!filtered.length) {
+
+  if (!config.length) {
     const es = document.createElement('div');
     es.className = 'empty-state';
-    es.innerHTML = '<div class="ic">&#128295;</div><p>Nessun apparecchio in questa zona.<br>Aggiungilo dal tab Setup.</p>';
+    es.innerHTML = '<div class="ic">&#128295;</div><p>Nessun apparecchio configurato.<br>Aggiungilo dal tab Setup.</p>';
     list.appendChild(es);
     updateQueueInfo(); return;
   }
+
   const today = new Date().toLocaleDateString('it-IT');
   const todayRows = cloudData.filter(r => r[0] === today);
-  filtered.forEach(function(item) {
-    const cloudLast = todayRows.filter(r => r[2] === item.name).pop();
-    const last = cloudLast
-      ? { temp: parseFloat(cloudLast[4]), ok: cloudLast[5] === 'OK' }
-      : lastTemps[item.name];
-    const soglia = item.type === 'frigo' ? '+4°C' : '-18°C';
-    const lastTxt = last ? ('Ult: ' + last.temp + String.fromCharCode(176) + ' ' + (last.ok ? String.fromCharCode(10003) : '!')) : 'Nessuna ril.';
-    const id = item.name.replace(/[^a-z0-9]/gi, '_');
 
-    const row = document.createElement('div');
-    row.className = 'device-row' + (last && !last.ok ? ' has-err' : '');
+  // Raggruppa per area nell ordine desiderato
+  const areaOrder = ['CUCINA', 'BAR', 'RISTORANTE'];
+  const areaLabel = {'CUCINA': '🍳 Cucina', 'BAR': '☕ Bar', 'RISTORANTE': '🍽️ Ristorante'};
 
-    const icon = document.createElement('div');
-    icon.className = 'device-icon' + (item.type !== 'frigo' ? ' gelo' : '');
-    icon.textContent = item.type === 'frigo' ? '❄️' : '🧊';
+  // Raccogli tutte le aree presenti (incluse quelle non standard)
+  const allAreas = [];
+  config.forEach(function(c) {
+    const a = (c.area || 'ALTRO').trim().toUpperCase();
+    if (!allAreas.includes(a)) allAreas.push(a);
+  });
+  // Ordina: prima quelle note, poi le altre
+  allAreas.sort(function(a, b) {
+    const ia = areaOrder.indexOf(a), ib = areaOrder.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
 
-    const info = document.createElement('div');
-    info.style.cssText = 'flex:1;min-width:0;';
+  allAreas.forEach(function(area) {
+    const items = config.filter(function(c) {
+      return (c.area || 'ALTRO').trim().toUpperCase() === area;
+    });
+    if (!items.length) return;
 
-    const nameEl = document.createElement('div');
-    nameEl.className = 'device-name';
-    nameEl.textContent = item.name;
+    // Titolo sezione
+    const title = document.createElement('div');
+    title.className = 'section-title';
+    title.textContent = areaLabel[area] || area;
+    list.appendChild(title);
 
-    const metaEl = document.createElement('div');
-    metaEl.className = 'device-meta';
-    metaEl.textContent = 'Soglia ' + soglia + ' · ' + lastTxt;
+    items.forEach(function(item) {
+      const cloudLast = todayRows.filter(r => r[2] === item.name).pop();
+      const last = cloudLast
+        ? { temp: parseFloat(cloudLast[4]), ok: cloudLast[5] === 'OK' }
+        : lastTemps[item.name];
+      const soglia = item.type === 'frigo' ? '+4°C' : '-18°C';
+      const lastTxt = last ? ('Ult: ' + last.temp + '° ' + (last.ok ? '✓' : '⚠')) : 'Nessuna ril.';
+      const id = item.name.replace(/[^a-z0-9]/gi, '_');
 
-    const warnEl = document.createElement('div');
-    warnEl.className = 'temp-warn';
-    warnEl.id = 'tw-' + id;
-    warnEl.textContent = '⚠ Fuori soglia!';
+      const row = document.createElement('div');
+      row.className = 'device-row' + (last && !last.ok ? ' has-err' : '');
 
-    info.appendChild(nameEl);
-    info.appendChild(metaEl);
-    info.appendChild(warnEl);
+      const icon = document.createElement('div');
+      icon.className = 'device-icon' + (item.type !== 'frigo' ? ' gelo' : '');
+      icon.textContent = item.type === 'frigo' ? '❄️' : '🧊';
 
-    const right = document.createElement('div');
-    right.className = 'device-right';
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'device-name';
+      nameEl.textContent = item.name;
+      const metaEl = document.createElement('div');
+      metaEl.className = 'device-meta';
+      metaEl.textContent = 'Soglia ' + soglia + ' · ' + lastTxt;
+      const warnEl = document.createElement('div');
+      warnEl.className = 'temp-warn';
+      warnEl.id = 'tw-' + id;
+      warnEl.textContent = '⚠ Fuori soglia!';
+      info.appendChild(nameEl);
+      info.appendChild(metaEl);
+      info.appendChild(warnEl);
 
-    const inp = document.createElement('input');
-    inp.className = 'temp-input';
-    inp.id = 'inp-' + id;
-    inp.type = 'number';
-    inp.step = '0.1';
-    inp.placeholder = '°C';
-    (function(n, t) {
-      inp.addEventListener('input', function() { checkWarn(n, t, this); });
-    })(item.name, item.type);
+      const right = document.createElement('div');
+      right.className = 'device-right';
+      const inp = document.createElement('input');
+      inp.className = 'temp-input';
+      inp.id = 'inp-' + id;
+      inp.type = 'number';
+      inp.step = '0.1';
+      inp.placeholder = '°C';
+      (function(n, t) {
+        inp.addEventListener('input', function() { checkWarn(n, t, this); });
+      })(item.name, item.type);
+      const btn = document.createElement('button');
+      btn.className = 'send-btn';
+      btn.id = 'sbtn-' + id;
+      btn.innerHTML = '<svg viewBox="0 0 16 16"><path d="M2 8l12-6-6 12V9L2 8z"/></svg>';
+      (function(n, t, a) {
+        btn.addEventListener('click', function() { sendData(n, t, a); });
+      })(item.name, item.type, item.area || area);
 
-    const btn = document.createElement('button');
-    btn.className = 'send-btn';
-    btn.id = 'sbtn-' + id;
-    btn.innerHTML = '<svg viewBox="0 0 16 16"><path d="M2 8l12-6-6 12V9L2 8z"/></svg>';
-    (function(n, t, a) {
-      btn.addEventListener('click', function() { sendData(n, t, a); });
-    })(item.name, item.type, currentArea);
-
-    right.appendChild(inp);
-    right.appendChild(btn);
-    row.appendChild(icon);
-    row.appendChild(info);
-    row.appendChild(right);
-    list.appendChild(row);
+      right.appendChild(inp);
+      right.appendChild(btn);
+      row.appendChild(icon);
+      row.appendChild(info);
+      row.appendChild(right);
+      list.appendChild(row);
+    });
   });
   updateQueueInfo();
 }
