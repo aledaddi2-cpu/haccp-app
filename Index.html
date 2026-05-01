@@ -578,8 +578,17 @@ async function pullTemperature() {
   try {
     const r = await fetch(G + '?tipo=temperature');
     const _cd = await r.json();
-    // Salta la prima riga di intestazione, tieni solo righe dati
-    cloudData = Array.isArray(_cd) ? _cd.slice(1).filter(r => Array.isArray(r) && r[0] && r[0] !== 'Data') : [];
+    cloudData = Array.isArray(_cd) ? _cd.slice(1).filter(row => Array.isArray(row) && row[0] && row[0] !== 'Data').map(row => {
+      // Converti data ISO o oggetto Date in dd/mm/yyyy
+      let d = row[0];
+      if (d && typeof d === 'string' && d.includes('T')) {
+        const dt = new Date(d);
+        d = dt.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit', year:'numeric'});
+      } else if (d instanceof Date) {
+        d = d.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit', year:'numeric'});
+      }
+      return [d, row[1], row[2], row[3], row[4], row[5], row[6]];
+    }) : [];
     localStorage.setItem('h_clouddata', JSON.stringify(cloudData));
   } catch(e) {
     cloudData = safeArr('h_clouddata');
