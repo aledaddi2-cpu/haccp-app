@@ -208,14 +208,16 @@ textarea { resize:vertical; min-height:68px; }
   <div class="login-card">
     <div>
       <label>Operatore</label>
-      <select id="login-user"></select>
+      <div id="login-user-list" style="display:flex;flex-direction:column;gap:8px;margin-top:6px;"></div>
+      <input type="hidden" id="login-user" value="">
     </div>
-    <div>
-      <label>Password</label>
-      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <div id="login-pass-section" style="display:none;">
+      <label>Password per <span id="login-user-name" style="color:#7dd3fc;"></span></label>
+      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" style="margin-top:6px;">
     </div>
     <div class="login-err" id="login-err"></div>
-    <button class="login-btn" onclick="doLogin()">Accedi →</button>
+    <button class="login-btn" id="login-btn" onclick="doLogin()" style="display:none;">Accedi →</button>
+    <button class="login-btn" onclick="showLoginScreen()" style="background:rgba(255,255,255,.1);margin-top:0;">← Cambia operatore</button>
   </div>
 </div>
 
@@ -526,22 +528,32 @@ async function init() {
 
 // ── LOGIN ─────────────────────────────────────────────────
 function showLoginScreen() {
-  const sel = document.getElementById('login-user');
-  sel.innerHTML = '';
-  // Admin sempre presente
-  const adminOpt = document.createElement('option');
-  adminOpt.value = 'Admin';
-  adminOpt.textContent = 'Admin';
-  sel.appendChild(adminOpt);
-  operatori.forEach(op => {
-    const opt = document.createElement('option');
-    opt.value = op;
-    opt.textContent = op;
-    sel.appendChild(opt);
+  const list = document.getElementById('login-user-list');
+  list.innerHTML = '';
+  ['Admin', ...operatori].forEach(op => {
+    const btn = document.createElement('button');
+    btn.textContent = '👤 ' + op;
+    btn.style.cssText = 'width:100%;padding:13px;background:rgba(255,255,255,.13);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:8px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;text-align:left;';
+    btn.onclick = function() { selectOperatore(op); };
+    list.appendChild(btn);
   });
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass-section').style.display = 'none';
+  document.getElementById('login-btn').style.display = 'none';
+  document.getElementById('login-user-list').style.display = 'flex';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-pass').value = '';
   document.getElementById('login-err').textContent = '';
+}
+
+function selectOperatore(op) {
+  document.getElementById('login-user').value = op;
+  document.getElementById('login-user-name').textContent = op;
+  document.getElementById('login-user-list').style.display = 'none';
+  document.getElementById('login-pass-section').style.display = 'block';
+  document.getElementById('login-btn').style.display = 'block';
+  document.getElementById('login-err').textContent = '';
+  setTimeout(() => document.getElementById('login-pass').focus(), 100);
 }
 
 async function doLogin() {
