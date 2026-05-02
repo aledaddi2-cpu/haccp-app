@@ -402,11 +402,17 @@ textarea { resize:vertical; min-height:68px; }
   </div>
 
   <div class="separator"></div>
-  <div class="section-title">Intestazione PDF</div>
+  <div class="section-title">📋 Dati Azienda per Documenti Ufficiali</div>
   <div class="card">
-    <div class="field"><label>Nome azienda</label><input type="text" id="cfg-azienda" placeholder="Es: Ristorante Da Mario" oninput="saveCfgLocal()"></div>
-    <div class="field"><label>Indirizzo</label><input type="text" id="cfg-indirizzo" placeholder="Via Roma 1, Milano" oninput="saveCfgLocal()"></div>
-    <div class="field"><label>Responsabile HACCP</label><input type="text" id="cfg-responsabile" placeholder="Nome del responsabile" oninput="saveCfgLocal()"></div>
+    <div class="field"><label>Ragione sociale / Nome locale</label><input type="text" id="cfg-azienda" placeholder="Es: Bagno Tahiti di Mario Rossi" oninput="saveCfgLocal()"></div>
+    <div class="field"><label>Indirizzo</label><input type="text" id="cfg-indirizzo" placeholder="Via Roma 1, 20100 Milano" oninput="saveCfgLocal()"></div>
+    <div class="field"><label>P.IVA / C.F.</label><input type="text" id="cfg-piva" placeholder="IT01234567890" oninput="saveCfgLocal()"></div>
+    <div class="field"><label>Telefono</label><input type="text" id="cfg-telefono" placeholder="+39 02 1234567" oninput="saveCfgLocal()"></div>
+    <div class="field"><label>Email</label><input type="text" id="cfg-email" placeholder="info@tuolocale.it" oninput="saveCfgLocal()"></div>
+    <div class="field"><label>Responsabile HACCP</label><input type="text" id="cfg-responsabile" placeholder="Nome Cognome del responsabile" oninput="saveCfgLocal()"></div>
+    <div class="field"><label>Numero registrazione sanitaria</label><input type="text" id="cfg-regsanitaria" placeholder="Es: IT 123 CE" oninput="saveCfgLocal()"></div>
+    <div class="field"><label>Data ultima verifica HACCP</label><input type="date" id="cfg-dataverifica" oninput="saveCfgLocal()"></div>
+    <button onclick="saveCfgCloud()" style="width:100%;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;margin-top:4px;">☁ Salva dati azienda</button>
   </div>
 
   <div class="separator"></div>
@@ -449,7 +455,7 @@ textarea { resize:vertical; min-height:68px; }
 
   <div class="separator"></div>
   <p style="font-size:10px;color:var(--text-muted);word-break:break-all;background:var(--blue-light);padding:8px;border-radius:6px;line-height:1.6;">
-    🔗 Script collegato:<br>https://script.google.com/macros/s/AKfycbzLfLuFoTPeV4waASomZHt_YbR__apd2TxBSjMFKhzwECx5H50UNo5SbUb_HUa6Xvtw/exec
+    🔗 Script collegato:<br>https://script.google.com/macros/s/AKfycbzFtzPH7CptHf3q_zR2o9Wi4cidvEJ7ZiEiSuQQIlVYZcx84ArrGY5ABZeXAAnG5ZhBaw/exec
   </p>
   <p class="sync-info" id="last-sync-label"></p>
 </div>
@@ -460,7 +466,7 @@ textarea { resize:vertical; min-height:68px; }
 // ═══════════════════════════════════════════════════════
 // COSTANTI
 // ═══════════════════════════════════════════════════════
-const G = "https://script.google.com/macros/s/AKfycbzLfLuFoTPeV4waASomZHt_YbR__apd2TxBSjMFKhzwECx5H50UNo5SbUb_HUa6Xvtw/exec";
+const G = "https://script.google.com/macros/s/AKfycbzFtzPH7CptHf3q_zR2o9Wi4cidvEJ7ZiEiSuQQIlVYZcx84ArrGY5ABZeXAAnG5ZhBaw/exec";
 const AZIONI_PRESET = ["Prodotti spostati","Tecnico chiamato","Impostazioni corrette","Prodotti smaltiti","Porta controllata","Sbrinamento effettuato","In attesa verifica"];
 
 async function autoSyncConfig() {
@@ -470,9 +476,14 @@ async function autoSyncConfig() {
   operatori.forEach((o,i) => rows.push([`operatore_${i}`, o]));
   scheduleSlots.forEach((s,i) => rows.push([`slot_${i}`, JSON.stringify(s)]));
 
-  rows.push(['azienda',      aziendaCfg.azienda      || '']);
-  rows.push(['indirizzo',    aziendaCfg.indirizzo    || '']);
-  rows.push(['responsabile', aziendaCfg.responsabile || '']);
+  rows.push(['azienda',       aziendaCfg.azienda       || '']);
+  rows.push(['indirizzo',     aziendaCfg.indirizzo     || '']);
+  rows.push(['piva',          aziendaCfg.piva          || '']);
+  rows.push(['telefono',      aziendaCfg.telefono      || '']);
+  rows.push(['email',         aziendaCfg.email         || '']);
+  rows.push(['responsabile',  aziendaCfg.responsabile  || '']);
+  rows.push(['regsanitaria',  aziendaCfg.regsanitaria  || '']);
+  rows.push(['dataverifica',  aziendaCfg.dataverifica  || '']);
 
   try {
     await fetch(G, {
@@ -720,8 +731,18 @@ async function pullConfig() {
         aziendaCfg.azienda = v;
       } else if (k === 'indirizzo') {
         aziendaCfg.indirizzo = v;
+      } else if (k === 'piva') {
+        aziendaCfg.piva = v;
+      } else if (k === 'telefono') {
+        aziendaCfg.telefono = v;
+      } else if (k === 'email') {
+        aziendaCfg.email = v;
       } else if (k === 'responsabile') {
         aziendaCfg.responsabile = v;
+      } else if (k === 'regsanitaria') {
+        aziendaCfg.regsanitaria = v;
+      } else if (k === 'dataverifica') {
+        aziendaCfg.dataverifica = v;
       }
     });
 
