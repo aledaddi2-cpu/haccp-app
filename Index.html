@@ -1605,6 +1605,51 @@ function updateDate() {
 // START
 // ═══════════════════════════════════════════════════════
 // ─── RESET ───────────────────────────────────────────────
+// ─── PASSWORD MANAGEMENT ─────────────────────────────────
+function renderPasswordMgmt() {
+  const list = document.getElementById('pwd-user-list');
+  const form = document.getElementById('pwd-form');
+  if (!list) return;
+  list.innerHTML = '';
+  form.style.display = 'none';
+  list.style.display = 'flex';
+  const passwords = JSON.parse(localStorage.getItem('h_passwords') || '{}');
+  ['Admin', ...operatori].forEach(function(op) {
+    const hasPwd = !!passwords[op];
+    const row = document.createElement('button');
+    row.style.cssText = 'width:100%;padding:12px 14px;background:var(--blue-light);border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:var(--text);';
+    row.innerHTML = '<span>👤 ' + op + '</span><span style="font-size:11px;color:' + (hasPwd ? 'var(--green)' : 'var(--amber)') + ';font-weight:700;">' + (hasPwd ? '🔒 impostata' : '⚠️ nessuna') + '</span>';
+    row.onclick = function() { selectPwdUser(op); };
+    list.appendChild(row);
+  });
+}
+
+function selectPwdUser(op) {
+  document.getElementById('pwd-user-list').style.display = 'none';
+  document.getElementById('pwd-form').style.display = 'flex';
+  document.getElementById('pwd-user-name').textContent = op;
+  document.getElementById('pwd-user-name').dataset.op = op;
+  document.getElementById('pwd-new').value = '';
+  document.getElementById('pwd-confirm').value = '';
+  setTimeout(function() { document.getElementById('pwd-new').focus(); }, 100);
+}
+
+async function savePassword() {
+  const user    = document.getElementById('pwd-user-name').dataset.op;
+  const newPwd  = document.getElementById('pwd-new').value;
+  const conf    = document.getElementById('pwd-confirm').value;
+  if (newPwd.length < 6) { showToast('Password troppo corta (min. 6 caratteri)', 'error'); return; }
+  if (newPwd !== conf)   { showToast('Le password non coincidono', 'error'); return; }
+  const hash = await sha256(newPwd);
+  const passwords = JSON.parse(localStorage.getItem('h_passwords') || '{}');
+  passwords[user] = hash;
+  localStorage.setItem('h_passwords', JSON.stringify(passwords));
+  document.getElementById('pwd-new').value = '';
+  document.getElementById('pwd-confirm').value = '';
+  showToast('Password salvata per ' + user, 'success');
+  renderPasswordMgmt();
+}
+
 async function resetRegistrazioni() {
   if (!confirm('Sei sicuro di voler eliminare TUTTE le registrazioni?\nQuesta operazione è irreversibile.')) return;
   if (!confirm('ULTIMA CONFERMA: eliminare tutte le registrazioni?')) return;
