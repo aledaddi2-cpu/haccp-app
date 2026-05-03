@@ -489,8 +489,8 @@ async function autoSyncConfig() {
   rows.push(['azienda',       aziendaCfg.azienda       || '']);
   rows.push(['indirizzo',     aziendaCfg.indirizzo     || '']);
   rows.push(['piva',          aziendaCfg.piva          || '']);
-  rows.push(['telefono',      aziendaCfg.telefono      || '']);
-  rows.push(['email',         aziendaCfg.email         || '']);
+  rows.push(['telefono',     aziendaCfg.telefono     || '']);
+  rows.push(['email',        aziendaCfg.email         || '']);
   rows.push(['responsabile',  aziendaCfg.responsabile  || '']);
   rows.push(['regsanitaria',  aziendaCfg.regsanitaria  || '']);
   rows.push(['dataverifica',  aziendaCfg.dataverifica  || '']);
@@ -737,8 +737,8 @@ async function pullConfig() {
         operatori.push(v);
       } else if (k.startsWith('slot_')) {
         try { scheduleSlots.push(JSON.parse(v)); } catch(e){}
-      } else if (k === 'azienda') {
-        aziendaCfg.azienda = v;
+	  } else if (k === 'telefono') {
+	  }
       } else if (k === 'indirizzo') {
         aziendaCfg.indirizzo = v;
       } else if (k === 'piva') {
