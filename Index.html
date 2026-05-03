@@ -1449,12 +1449,18 @@ async function saveCfgCloud() {
 }
 
 function saveCfgLocal() {
+  function val(id) { const el = document.getElementById(id); return el ? el.value : ''; }
   aziendaCfg = {
-    azienda:      document.getElementById('cfg-azienda').value,
-    indirizzo:    document.getElementById('cfg-indirizzo').value,
-    responsabile: document.getElementById('cfg-responsabile').value
+    azienda:      val('cfg-azienda'),
+    indirizzo:    val('cfg-indirizzo'),
+    piva:         val('cfg-piva'),
+    telefono:     val('cfg-telefono'),
+    email:        val('cfg-email'),
+    responsabile: val('cfg-responsabile'),
+    regsanitaria: val('cfg-regsanitaria'),
+    dataverifica: val('cfg-dataverifica')
   };
-  localStorage.setItem('h_azienda',JSON.stringify(aziendaCfg));
+  localStorage.setItem('h_azienda', JSON.stringify(aziendaCfg));
   autoSyncConfig();
 }
 
