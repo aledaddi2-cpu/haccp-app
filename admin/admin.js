@@ -366,20 +366,38 @@ function openQRModal(userId) {
   currentQRPayload = JSON.stringify(payload);
   document.getElementById('qr-nome').textContent = c.nome_ristorante;
   document.getElementById('qr-payload').textContent = JSON.stringify(payload, null, 2);
-  // Genera il QR
+  // Genera il QR (libreria qrcodejs di David Shim)
   const target = document.getElementById('qr-target');
   target.innerHTML = '';
-  QRCode.toCanvas(currentQRPayload, { width: 240, margin: 1, errorCorrectionLevel: 'M' }, (err, canvas) => {
-    if (err) { target.textContent = 'Errore: ' + err.message; return; }
-    canvas.id = 'qr-canvas';
-    target.appendChild(canvas);
+  if (typeof QRCode === 'undefined') {
+    target.textContent = 'Errore: libreria QRCode non caricata. Ricarica la pagina (Ctrl+Shift+R).';
+    return;
+  }
+  new QRCode(target, {
+    text: currentQRPayload,
+    width: 240,
+    height: 240,
+    correctLevel: QRCode.CorrectLevel.M
   });
   document.getElementById('modal-qr').classList.remove('hidden');
 }
 
 function downloadQR() {
-  const canvas = document.getElementById('qr-canvas');
-  if (!canvas) return;
+  // qrcodejs genera un <canvas> dentro #qr-target
+  const canvas = document.querySelector('#qr-target canvas');
+  if (!canvas) {
+    // fallback: alcune versioni rendono solo <img>
+    const img = document.querySelector('#qr-target img');
+    if (img) {
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = `qr-haccp-${Date.now()}.png`;
+      a.click();
+      return;
+    }
+    showToast('QR non disponibile per il download', 'error');
+    return;
+  }
   const a = document.createElement('a');
   a.href = canvas.toDataURL('image/png');
   a.download = `qr-haccp-${Date.now()}.png`;
