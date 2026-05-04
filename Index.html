@@ -488,12 +488,13 @@ async function autoSyncConfig() {
 
   rows.push(['azienda',       aziendaCfg.azienda       || '']);
   rows.push(['indirizzo',     aziendaCfg.indirizzo     || '']);
-  rows.push(['piva',          "'" + (aziendaCfg.piva   || '')]); // Forza stringa per Sheets
-  rows.push(['telefono',      "'" + (aziendaCfg.telefono || '')]); // Forza stringa per Sheets
+  rows.push(['piva',     "'" + (aziendaCfg.piva        || '')]);
+  rows.push(['telefono', "'" + (aziendaCfg.telefono    || '')]);
   rows.push(['email',         aziendaCfg.email         || '']);
   rows.push(['responsabile',  aziendaCfg.responsabile  || '']);
   rows.push(['regsanitaria',  aziendaCfg.regsanitaria  || '']);
   rows.push(['dataverifica',  aziendaCfg.dataverifica  || '']);
+
   try {
     await fetch(G, {
       method: 'POST',
@@ -737,22 +738,21 @@ async function pullConfig() {
       } else if (k.startsWith('slot_')) {
         try { scheduleSlots.push(JSON.parse(v)); } catch(e){}
       } else if (k === 'azienda') {
-        aziendaCfg.azienda = v;
+        aziendaCfg.azienda = v.replace(/^'/, '');
       } else if (k === 'indirizzo') {
-        aziendaCfg.indirizzo = v;
+        aziendaCfg.indirizzo = v.replace(/^'/, '');
       } else if (k === 'piva') {
-        aziendaCfg.piva = v.replace(/^'/, ''); // Rimuove l'apice salvato su Sheets
+        aziendaCfg.piva = v.replace(/^'/, '');
       } else if (k === 'telefono') {
-        aziendaCfg.telefono = v.replace(/^'/, ''); // Rimuove l'apice salvato su Sheets
+        aziendaCfg.telefono = v.replace(/^'/, '');
       } else if (k === 'email') {
-        aziendaCfg.email = v.
-		replace(/^'/, '');
+        aziendaCfg.email = v.replace(/^'/, '');
       } else if (k === 'responsabile') {
-        aziendaCfg.responsabile = v;
+        aziendaCfg.responsabile = v.replace(/^'/, '');
       } else if (k === 'regsanitaria') {
-        aziendaCfg.regsanitaria = v;
+        aziendaCfg.regsanitaria = v.replace(/^'/, '');
       } else if (k === 'dataverifica') {
-        aziendaCfg.dataverifica = v;
+        aziendaCfg.dataverifica = v.replace(/^'/, '');
       }
     });
 
@@ -763,7 +763,6 @@ async function pullConfig() {
     loadConfigLocal();
   }
 }
-		
 function loadConfigLocal() {
   config        = JSON.parse(localStorage.getItem('h_config'))    || [];
   operatori     = JSON.parse(localStorage.getItem('h_operatori')) || [];
@@ -846,8 +845,8 @@ async function pushConfig() {
   // Aggiunti tutti i campi azienda mancanti
   rows.push(['azienda',      aziendaCfg.azienda      || '']);
   rows.push(['indirizzo',    aziendaCfg.indirizzo    || '']);
-  rows.push(['piva',         aziendaCfg.piva         || '']);
-  rows.push(['telefono',     aziendaCfg.telefono     || '']);
+  rows.push(['piva',     "'" + (aziendaCfg.piva      || '')]);
+  rows.push(['telefono', "'" + (aziendaCfg.telefono  || '')]);
   rows.push(['email',        aziendaCfg.email        || '']);
   rows.push(['responsabile', aziendaCfg.responsabile || '']);
   rows.push(['regsanitaria', aziendaCfg.regsanitaria || '']);
