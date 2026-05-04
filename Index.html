@@ -1104,8 +1104,40 @@ async function flushQueue() {
 }
 function updateQueueInfo() {
   const el=document.getElementById('queue-info'); if(!el) return;
-  if (offlineQueue.length>0) { el.textContent=`⏳ ${offlineQueue.length} in coda per sync`; el.classList.add('on'); }
-  else el.classList.remove('on');
+  if (offlineQueue.length>0) {
+    el.innerHTML = `⏳ ${offlineQueue.length} in coda per sync <span style="text-decoration:underline;margin-left:6px;">tocca per gestire</span>`;
+    el.classList.add('on');
+    el.style.cursor = 'pointer';
+    el.onclick = handleQueueClick;
+  } else {
+    el.classList.remove('on');
+    el.onclick = null;
+  }
+}
+
+async function handleQueueClick() {
+  if (!offlineQueue.length) return;
+  const n = offlineQueue.length;
+  const choice = confirm(
+    `Ci sono ${n} rilevazion${n>1?'i':'e'} in coda offline.\n\n` +
+    `OK = riprova a sincronizzarle ora\n` +
+    `Annulla = scartale (eliminale dalla coda)`
+  );
+  if (choice) {
+    // Riprova flush
+    await flushQueue();
+    if (offlineQueue.length === 0) showToast('Coda svuotata', 'success');
+    else if (offlineQueue.length < n) showToast(`${n-offlineQueue.length} sincronizzate, ${offlineQueue.length} ancora in coda`, 'warning');
+    else showToast('Sync ancora non riuscita — riprova quando il GAS è raggiungibile', 'error');
+  } else {
+    // Scarta la coda
+    if (confirm(`Eliminare definitivamente le ${n} rilevazion${n>1?'i':'e'} in coda?`)) {
+      offlineQueue = [];
+      localStorage.setItem('h_queue', '[]');
+      updateQueueInfo();
+      showToast('Coda cancellata', 'success');
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1899,16 +1931,21 @@ async function resetRegistrazioni() {
   if (!confirm('Sei sicuro di voler eliminare TUTTE le registrazioni?\nQuesta operazione è irreversibile.')) return;
   if (!confirm('ULTIMA CONFERMA: eliminare tutte le registrazioni?')) return;
   cloudData = []; cloudAzioni = []; cloudFirme = [];
+  offlineQueue = []; lastTemps = {};
   localStorage.setItem('h_clouddata', JSON.stringify([]));
   localStorage.setItem('h_azioni',    JSON.stringify([]));
   localStorage.setItem('h_firme',     JSON.stringify([]));
+  localStorage.setItem('h_queue',     JSON.stringify([]));
+  localStorage.setItem('h_lasttemps', JSON.stringify({}));
   try {
     await fetch(G, { method:'POST', body: JSON.stringify({ tipo:'resetTemperature' }) });
     await fetch(G, { method:'POST', body: JSON.stringify({ tipo:'resetAzioni' }) });
     await fetch(G, { method:'POST', body: JSON.stringify({ tipo:'resetFirme' }) });
   } catch(e) {}
   showToast('Registrazioni eliminate', 'success');
+  updateQueueInfo();
   buildDash();
+  renderDevices();
 }
 
 async function resetTutto() {
@@ -1917,6 +1954,7 @@ async function resetTutto() {
   config = []; operatori = [];
   scheduleSlots = [{time:"09:00",label:"Apertura"},{time:"15:00",label:"Pomeriggio"},{time:"21:00",label:"Chiusura"}];
   aziendaCfg = {}; cloudData = []; cloudAzioni = []; cloudFirme = [];
+  offlineQueue = []; lastTemps = {};
   localStorage.clear();
   try {
     await fetch(G, { method:'POST', body: JSON.stringify({ tipo:'resetTemperature' }) });
@@ -1925,6 +1963,7 @@ async function resetTutto() {
     await fetch(G, { method:'POST', body: JSON.stringify({ tipo:'config', rows:[] }) });
   } catch(e) {}
   renderSetup(); renderDevices(); buildDash();
+  updateQueueInfo();
   showToast('Reset completo effettuato', 'success');
 }
 
