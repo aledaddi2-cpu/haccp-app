@@ -1380,6 +1380,9 @@ function exportPDF() {
   const nomefile = 'HACCP_' + (aziendaCfg.azienda||'registro').replace(/[^a-zA-Z0-9]/g,'_') + '_' + mName.replace(/\s/g,'_') + '.pdf';
   doc.save(nomefile);
   showToast('PDF ufficiale generato', 'success');
+  // Apre la modale di conferma "Hai stampato e firmato?" solo se è
+  // settimana di promemoria. Funzione no-op se non è il momento.
+  setTimeout(mostraConfermaStampa, 600);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1394,39 +1397,123 @@ function updateDate() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// STAMPA SETTIMANALE
+// PROMEMORIA STAMPA SETTIMANALE
+// ───────────────────────────────────────────────────────────────
+// Logica:
+// • Al primo accesso, registra la data di "inizio account" (h_data_inizio_account)
+// • Banner appare se: sono passati ≥7 giorni dall'inizio account
+//                     E ≥7 giorni dall'ultima stampa CONFERMATA
+// • Conferma stampa: avviene SOLO quando l'utente clicca "Sì, ho stampato"
+//   nella modale che appare DOPO la generazione del PDF (non automaticamente)
+// • "Tra 24h" rimanda di 1 giorno (non resetta il timer settimanale)
 // ═══════════════════════════════════════════════════════════════
+
+const SETTE_GIORNI_MS = 7 * 24 * 3600 * 1000;
+const UN_GIORNO_MS    = 24 * 3600 * 1000;
+
 function checkStampaBanner() {
-  const ultima = parseInt(localStorage.getItem('h_ultima_stampa') || '0');
-  const ora    = Date.now();
-  const sette  = 7 * 24 * 3600 * 1000;
   const banner = document.getElementById('stampa-banner');
   if (!banner) return;
-  if (ora - ultima > sette) banner.style.display = 'block';
+
+  // Il superadmin non vede il promemoria stampa (è il fornitore del servizio)
+  if (currentRole === 'superadmin') { banner.style.display = 'none'; return; }
+
+  const ora = Date.now();
+
+  // 1. Data di "inizio account": registrata al primo accesso e poi stabile.
+  // È in localStorage, quindi per dispositivo. In caso di cambio dispositivo
+  // l'utente vedrà il banner una volta extra, ma non è un problema critico.
+  let inizioAccount = parseInt(localStorage.getItem('h_data_inizio_account') || '0');
+  if (!inizioAccount) {
+    inizioAccount = ora;
+    localStorage.setItem('h_data_inizio_account', String(inizioAccount));
+  }
+
+  // 2. Calcola se è il momento di mostrare il banner
+  const giorniDaInizio = (ora - inizioAccount) / UN_GIORNO_MS;
+  if (giorniDaInizio < 7) {
+    banner.style.display = 'none';
+    return;  // primi 7 giorni di vita account: niente promemoria
+  }
+
+  // Rimando "Tra 24h" cliccato di recente?
+  const rimando = parseInt(localStorage.getItem('h_stampa_rimando') || '0');
+  if (rimando > ora) { banner.style.display = 'none'; return; }
+
+  // Ultima stampa CONFERMATA: se nelle ultime 7gg, niente banner
+  const ultimaConferma = parseInt(localStorage.getItem('h_stampa_confermata') || '0');
+  const giorniDaConferma = (ora - ultimaConferma) / UN_GIORNO_MS;
+  if (ultimaConferma > 0 && giorniDaConferma < 7) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  // Mostra il banner con messaggio dinamico
+  const sub = document.getElementById('stampa-banner-sub');
+  if (sub) {
+    if (ultimaConferma === 0) {
+      const giorni = Math.floor(giorniDaInizio);
+      sub.textContent = `Sono passati ${giorni} giorni dall'attivazione dell'account. È il momento di generare e archiviare il primo registro mensile.`;
+    } else {
+      const giorni = Math.floor(giorniDaConferma);
+      sub.textContent = `Sono passati ${giorni} giorni dall'ultima stampa archiviata. Genera il PDF e conserva il documento firmato come da normativa HACCP.`;
+    }
+  }
+  banner.style.display = 'block';
 }
 
+// "Tra 24h" — rimanda il banner di un giorno (non resetta il ciclo settimanale)
 function posticipaBanner() {
-  localStorage.setItem('h_ultima_stampa', String(Date.now() - 6 * 24 * 3600 * 1000));
-  const b = document.getElementById('stampa-banner');
-  if (b) b.style.display = 'none';
+  localStorage.setItem('h_stampa_rimando', String(Date.now() + UN_GIORNO_MS));
+  document.getElementById('stampa-banner').style.display = 'none';
+  showToast('Promemoria rinviato di 24h', 'info');
 }
 
-function stampaDiretto() {
-  const banner = document.getElementById('stampa-banner');
-  if (banner) banner.style.display = 'none';
-  localStorage.setItem('h_ultima_stampa', String(Date.now()));
+// "Genera ora" — porta al tab Report con preset corrente, poi genera PDF
+function apriReportPerStampa() {
+  document.getElementById('stampa-banner').style.display = 'none';
+  // Preset filtro al mese corrente
   const now = new Date();
-  const mese = String(now.getMonth()+1).padStart(2,'0');
+  const mese = String(now.getMonth() + 1).padStart(2, '0');
   const selMese = document.getElementById('filter-month');
   if (selMese) selMese.value = mese;
   const selArea = document.getElementById('filter-area');
   if (selArea) selArea.value = 'ALL';
+  // Vai al tab Report
   const tabReport = document.querySelector('[onclick*="history"]');
   if (tabReport) tabReport.click();
-  setTimeout(function() {
-    exportPDF();
-    showToast('Report PDF generato!', 'success');
-  }, 300);
+  // Avvia la generazione PDF — la modale di conferma apparirà a fine
+  setTimeout(function() { exportPDF(); }, 350);
+}
+
+// Modale di conferma — chiamata da exportPDF() a fine generazione
+function mostraConfermaStampa() {
+  // Mostra la modale solo se in effetti il banner sarebbe attivo
+  // (cioè è passata >=1 settimana dall'ultima conferma o dall'inizio account)
+  if (currentRole === 'superadmin') return;
+  const ora = Date.now();
+  const inizioAccount = parseInt(localStorage.getItem('h_data_inizio_account') || '0');
+  const ultimaConferma = parseInt(localStorage.getItem('h_stampa_confermata') || '0');
+  const giorniDaInizio = (ora - inizioAccount) / UN_GIORNO_MS;
+  const giorniDaConferma = ultimaConferma > 0 ? (ora - ultimaConferma) / UN_GIORNO_MS : 999;
+  if (giorniDaInizio < 7) return;
+  if (ultimaConferma > 0 && giorniDaConferma < 7) return;
+
+  const m = document.getElementById('modal-conferma-stampa');
+  if (m) m.classList.remove('hidden');
+}
+
+function confermaStampaFatta() {
+  localStorage.setItem('h_stampa_confermata', String(Date.now()));
+  localStorage.removeItem('h_stampa_rimando');
+  document.getElementById('modal-conferma-stampa').classList.add('hidden');
+  document.getElementById('stampa-banner').style.display = 'none';
+  showToast('✓ Stampa registrata. Prossimo promemoria fra 7 giorni.', 'success');
+}
+
+function rimandaConfermaStampa() {
+  document.getElementById('modal-conferma-stampa').classList.add('hidden');
+  showToast('Promemoria attivo: ti ricomparirà al prossimo accesso', 'info');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1458,7 +1545,6 @@ async function resetRegistrazioni() {
     showToast('Registrazioni archiviate (recuperabili da admin)', 'success');
     updateQueueInfo();
     buildDash();
-    updateDashBadge();
     renderDevices();
   } catch(e) { showToast('Errore: '+e.message,'error'); }
 }
