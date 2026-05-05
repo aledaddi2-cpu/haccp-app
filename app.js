@@ -1407,11 +1407,13 @@ function checkStampaBanner() {
 
 function posticipaBanner() {
   localStorage.setItem('h_ultima_stampa', String(Date.now() - 6 * 24 * 3600 * 1000));
-  document.getElementById('stampa-banner').style.display = 'none';
+  const b = document.getElementById('stampa-banner');
+  if (b) b.style.display = 'none';
 }
 
 function stampaDiretto() {
-  document.getElementById('stampa-banner').style.display = 'none';
+  const banner = document.getElementById('stampa-banner');
+  if (banner) banner.style.display = 'none';
   localStorage.setItem('h_ultima_stampa', String(Date.now()));
   const now = new Date();
   const mese = String(now.getMonth()+1).padStart(2,'0');
@@ -1423,7 +1425,7 @@ function stampaDiretto() {
   if (tabReport) tabReport.click();
   setTimeout(function() {
     exportPDF();
-    showToast('Ricordati di firmare il documento stampato!', 'success');
+    showToast('Report PDF generato!', 'success');
   }, 300);
 }
 
@@ -1456,6 +1458,7 @@ async function resetRegistrazioni() {
     showToast('Registrazioni archiviate (recuperabili da admin)', 'success');
     updateQueueInfo();
     buildDash();
+    updateDashBadge();
     renderDevices();
   } catch(e) { showToast('Errore: '+e.message,'error'); }
 }
