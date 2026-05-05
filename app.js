@@ -494,6 +494,130 @@ function setSetupTab(name, el) {
   el.classList.add('active');
   const target = document.getElementById('setup-tab-' + name);
   if (target) target.classList.add('active');
+  // Quando entriamo nel tab Anagrafica, carichiamo lo stato abbonamento
+  if (name === 'anagrafica') loadStatoAbbonamento();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATO ABBONAMENTO (pausa / riattivazione)
+// ═══════════════════════════════════════════════════════════════
+async function loadStatoAbbonamento() {
+  const el = document.getElementById('abb-status-content');
+  if (!el) return;
+
+  if (!currentUserId) {
+    el.innerHTML = '<p style="font-size:12px;color:var(--text-muted);">Non sei autenticato</p>';
+    return;
+  }
+
+  try {
+    const { data, error } = await sb.from('profiles')
+      .select('data_sottoscrizione,data_scadenza,abbonamento_in_pausa,pausa_inizio,pausa_fine_prevista,pause_utilizzate,piano_abbonamento')
+      .eq('user_id', currentUserId)
+      .single();
+    if (error) throw error;
+
+    const ora = new Date();
+    const sottoscr = data.data_sottoscrizione ? new Date(data.data_sottoscrizione) : null;
+    const scad     = data.data_scadenza ? new Date(data.data_scadenza) : null;
+    const inPausa  = !!data.abbonamento_in_pausa;
+    const pauseUsate = data.pause_utilizzate || 0;
+
+    // Limite "1 anno dalla sottoscrizione"
+    let entroAnno = false;
+    if (sottoscr) {
+      const limiteAnno = new Date(sottoscr.getTime());
+      limiteAnno.setFullYear(limiteAnno.getFullYear() + 1);
+      entroAnno = ora < limiteAnno;
+    }
+
+    const pausePossibili = !inPausa && pauseUsate < 2 && entroAnno && scad > ora;
+    const pianoLabel = data.piano_abbonamento === '24.99_automatico' ? '24.99€ Automatico' : '14.99€ Manuale';
+
+    let html = '';
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">`;
+    html += `<div style="background:var(--blue-light);padding:9px 10px;border-radius:8px;">
+               <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;">Piano</div>
+               <div style="font-size:13px;font-weight:700;color:var(--navy);margin-top:2px;">${pianoLabel}</div>
+             </div>`;
+    html += `<div style="background:var(--blue-light);padding:9px 10px;border-radius:8px;">
+               <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;">Pause usate</div>
+               <div style="font-size:13px;font-weight:700;color:var(--navy);margin-top:2px;">${pauseUsate}/2</div>
+             </div>`;
+    if (sottoscr) html += `<div style="background:var(--blue-light);padding:9px 10px;border-radius:8px;">
+               <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;">Sottoscritto il</div>
+               <div style="font-size:13px;font-weight:700;color:var(--navy);margin-top:2px;">${sottoscr.toLocaleDateString('it-IT')}</div>
+             </div>`;
+    if (scad) html += `<div style="background:var(--blue-light);padding:9px 10px;border-radius:8px;">
+               <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;">Scadenza</div>
+               <div style="font-size:13px;font-weight:700;color:var(--navy);margin-top:2px;">${scad.toLocaleDateString('it-IT')}</div>
+             </div>`;
+    html += `</div>`;
+
+    if (inPausa) {
+      const fine = new Date(data.pausa_fine_prevista);
+      html += `<div style="background:#fff7ed;border:1px solid #fed7aa;padding:11px 12px;border-radius:8px;margin-bottom:10px;">
+                 <div style="font-size:13px;font-weight:700;color:#c2410c;">⏸ Abbonamento in pausa</div>
+                 <div style="font-size:11px;color:var(--text-muted);margin-top:3px;line-height:1.4;">
+                   Pausa attiva fino al <b>${fine.toLocaleDateString('it-IT')}</b>.
+                   Ti verranno rimborsati i giorni non utilizzati al rientro.
+                 </div>
+               </div>`;
+      html += `<button onclick="riattivaAbbonamento()" style="width:100%;padding:12px;background:linear-gradient(135deg,#1a7a4a 0%,#16a34a 100%);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-family:inherit;">▶ Riattiva ora</button>`;
+    } else if (pausePossibili) {
+      html += `<p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Quanto vuoi mettere in pausa?</p>`;
+      html += `<div style="display:flex;gap:6px;flex-wrap:wrap;">`;
+      html += `  <button onclick="pausaAbbonamento(1)" style="flex:1;min-width:80px;padding:11px;background:#fff;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-weight:700;font-family:inherit;">1 mese</button>`;
+      html += `  <button onclick="pausaAbbonamento(2)" style="flex:1;min-width:80px;padding:11px;background:#fff;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-weight:700;font-family:inherit;">2 mesi</button>`;
+      html += `  <button onclick="pausaAbbonamento(3)" style="flex:1;min-width:80px;padding:11px;background:#fff;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-weight:700;font-family:inherit;">3 mesi</button>`;
+      html += `</div>`;
+    } else {
+      let motivo = '';
+      if (pauseUsate >= 2)         motivo = 'Hai già utilizzato il numero massimo di pause (2 totali).';
+      else if (!entroAnno)         motivo = 'È trascorso oltre 1 anno dalla sottoscrizione.';
+      else if (scad <= ora)        motivo = 'Abbonamento scaduto. Contatta l\'amministratore per il rinnovo.';
+      else                         motivo = 'Pausa non disponibile.';
+      html += `<div style="background:var(--gray-bg);padding:11px 12px;border-radius:8px;font-size:12px;color:var(--text-muted);line-height:1.5;">⚠️ ${motivo}</div>`;
+    }
+    el.innerHTML = html;
+  } catch(e) {
+    console.error('[Abbonamento]', e);
+    el.innerHTML = `<p style="font-size:12px;color:var(--red);">Errore: ${e.message}</p>`;
+  }
+}
+
+async function pausaAbbonamento(mesi) {
+  if (!confirm(`Confermare la pausa di ${mesi} mes${mesi===1?'e':'i'}?\n\nDurante la pausa potrai comunque consultare i dati ma non sarà possibile registrarne di nuovi. Puoi riattivare in qualsiasi momento (ti rimborseremo i giorni non usati).`)) return;
+
+  try {
+    const { data, error } = await sb.rpc('pausa_abbonamento', { p_mesi: mesi });
+    if (error) throw error;
+    if (!data.ok) {
+      showToast(data.error || 'Operazione non riuscita', 'error');
+      return;
+    }
+    showToast(`✓ Abbonamento in pausa per ${mesi} mes${mesi===1?'e':'i'}`, 'success');
+    loadStatoAbbonamento();
+  } catch(e) {
+    showToast('Errore: ' + e.message, 'error');
+  }
+}
+
+async function riattivaAbbonamento() {
+  if (!confirm("Riattivare ora l'abbonamento?\n\nI giorni non utilizzati della pausa verranno rimborsati sulla scadenza.")) return;
+
+  try {
+    const { data, error } = await sb.rpc('riattiva_abbonamento');
+    if (error) throw error;
+    if (!data.ok) {
+      showToast(data.error || 'Operazione non riuscita', 'error');
+      return;
+    }
+    showToast(`✓ Abbonamento riattivato (rimborsati ${data.giorni_rimborsati} giorni)`, 'success');
+    loadStatoAbbonamento();
+  } catch(e) {
+    showToast('Errore: ' + e.message, 'error');
+  }
 }
 
 function renderDevices() {

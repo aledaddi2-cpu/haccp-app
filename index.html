@@ -311,6 +311,16 @@
       <input type="text" id="new-operatore" placeholder="Nome operatore" style="flex:1;">
       <button onclick="addOperatore()" style="padding:10px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;">+</button>
     </div>
+
+    <div class="section-title" style="margin-top:22px;">💳 Stato abbonamento</div>
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+      Puoi mettere in pausa l'abbonamento fino a 2 volte (max 3 mesi a pausa). L'opzione è disponibile entro 1 anno dalla sottoscrizione.
+    </p>
+    <div class="card" id="abbonamento-card">
+      <div id="abb-status-content">
+        <p style="font-size:12px;color:var(--text-muted);">Caricamento stato…</p>
+      </div>
+    </div>
   </div>
 
   <!-- TAB: Orari -->
