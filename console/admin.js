@@ -122,7 +122,7 @@ async function callAdminApi(action, body = {}) {
 // ════════════════════════════════════════════════════════════════
 async function loadClients() {
   document.getElementById('clienti-body').innerHTML =
-    '<tr><td colspan="6" class="p-8 text-center text-slate-400 text-sm">Caricamento…</td></tr>';
+    '<tr><td colspan="7" class="p-8 text-center text-slate-400 text-sm">Caricamento…</td></tr>';
   try {
     const { clients } = await callAdminApi('list_clients');
     allClients = clients || [];
@@ -134,7 +134,7 @@ async function loadClients() {
     console.error(e);
     showToast('Errore: ' + e.message, 'error');
     document.getElementById('clienti-body').innerHTML =
-      `<tr><td colspan="6" class="p-8 text-center text-red-500 text-sm">${e.message}</td></tr>`;
+      `<tr><td colspan="7" class="p-8 text-center text-red-500 text-sm">${e.message}</td></tr>`;
   }
 }
 
@@ -165,7 +165,7 @@ function renderTable() {
   });
 
   if (!filtered.length) {
-    body.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 text-sm">Nessun cliente trovato</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 text-sm">Nessun cliente trovato</td></tr>';
     return;
   }
 
@@ -182,6 +182,19 @@ function renderTable() {
       : c.giorni_mancanti > 36500 ? '∞ per sempre'
       : `tra ${c.giorni_mancanti} giorni`;
 
+    // Badge pausa: mostra info sull'eventuale pausa attiva o sul contatore
+    const pauseN   = c.pause_utilizzate || 0;
+    const inPausa  = !!c.abbonamento_in_pausa;
+    let pauseBadge = '';
+    if (inPausa) {
+      const fineP = c.pausa_fine_prevista ? new Date(c.pausa_fine_prevista).toLocaleDateString('it-IT') : '—';
+      pauseBadge = `<span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full text-[11px] font-bold" title="In pausa fino al ${fineP}">⏸ in pausa</span>
+                    <div class="text-[10px] text-slate-500 mt-1">fino al ${fineP}</div>`;
+    } else {
+      const tone = pauseN >= 2 ? 'bg-red-50 text-red-700' : pauseN === 1 ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-600';
+      pauseBadge = `<span class="${tone} px-2 py-0.5 rounded-full text-[11px] font-bold">${pauseN}/2</span>`;
+    }
+
     return `
       <tr class="border-b border-slate-100 hover:bg-slate-50">
         <td class="py-2.5 px-3">
@@ -191,6 +204,7 @@ function renderTable() {
         </td>
         <td class="py-2.5 px-3 text-slate-600 hidden md:table-cell">${escapeHtml(c.email || '—')}</td>
         <td class="py-2.5 px-3">${piano}</td>
+        <td class="py-2.5 px-3">${pauseBadge}</td>
         <td class="py-2.5 px-3">
           <div class="text-slate-700">${dataIT}</div>
           <div class="text-[11px] text-slate-500">${giorniLbl}</div>
