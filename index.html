@@ -14,22 +14,31 @@
 
 <!-- LOGIN -->
 <div id="login-screen">
-  <h2>🔐 HACCP Pro</h2>
-  <p>Clicca qua per continuare</p>
+  <div class="login-logo">🔐</div>
+  <h2>HACCP Pro</h2>
+  <p class="login-sub">Accedi al registro temperature</p>
   <div class="login-card">
-    <div>
-      <label>Benvenuto</label>
-      <div id="login-user-list" style="display:flex;flex-direction:column;gap:8px;margin-top:6px;"></div>
-      <input type="hidden" id="login-user" value="">
+    <div class="field">
+      <label>Email</label>
+      <div class="input-wrap">
+        <span class="ico">✉️</span>
+        <input type="email" id="login-email" placeholder="nome@azienda.it" autocomplete="username" inputmode="email">
+      </div>
     </div>
-    <div id="login-pass-section" style="display:none;">
-      <label>Password per <span id="login-user-name" style="color:#7dd3fc;"></span></label>
-      <input type="password" id="login-pass" placeholder="••••••••"  style="margin-top:6px;">
+    <div class="field">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="ico">🔑</span>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
     </div>
     <div class="login-err" id="login-err"></div>
-    <button class="login-btn" id="login-btn" onclick="doLogin()" style="display:none;">Accedi</button>
-    <button class="login-btn" onclick="showLoginScreen()" style="background:rgba(255,255,255,.1);margin-top:0;">Seleziona Operatore</button>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Accedi →</button>
+    <div style="text-align:center;margin-top:4px;">
+      <a href="#" onclick="doRecoverPassword();return false;" style="color:#7dd3fc;font-size:12px;text-decoration:none;">Password dimenticata?</a>
+    </div>
   </div>
+  <div class="login-foot">HACCP Pro Cloud · Reg. CE 852/2004</div>
 </div>
 
 <!-- LOADING -->
@@ -262,22 +271,6 @@
   </div>
 
   <div class="separator"></div>
-  <div class="section-title">Gestione Password</div>
-  <div class="card" id="password-mgmt">
-    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Tocca un operatore per impostarne la password</p>
-    <div id="pwd-user-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
-    <div id="pwd-form" style="display:none;flex-direction:column;gap:10px;">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);">Password per: <span id="pwd-user-name" style="color:var(--blue);"></span></div>
-      <div class="field"><label>Nuova password</label><input type="password" id="pwd-new" placeholder="min. 6 caratteri"></div>
-      <div class="field"><label>Conferma password</label><input type="password" id="pwd-confirm" placeholder="ripeti la password"></div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="renderPasswordMgmt()" style="flex:1;padding:11px;background:var(--border);color:var(--text);border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;">← Indietro</button>
-        <button onclick="savePassword()" style="flex:2;padding:11px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;">💾 Salva password</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="separator"></div>
   <div class="section-title">Zona pericolosa</div>
   <div style="display:flex;flex-direction:column;gap:10px;">
     <button onclick="resetRegistrazioni()" style="width:100%;padding:13px;background:#e53935;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:14px;font-family:inherit;">
@@ -289,8 +282,8 @@
   </div>
 
   <div class="separator"></div>
-  <p style="font-size:10px;color:var(--text-muted);word-break:break-all;background:var(--blue-light);padding:8px;border-radius:6px;line-height:1.6;">
-    🔗 Script collegato:<br>https://script.google.com/macros/s/AKfycbwkEN3eteNkaicz7q39HtaxA64g0vYnP5y_wDWBvdHX8oxwFFWfUdpOE_OHtTofDp2I-w/exec
+  <p style="font-size:10px;color:var(--text-muted);background:var(--blue-light);padding:8px;border-radius:6px;line-height:1.6;">
+    ☁ Database: Supabase &nbsp;·&nbsp; Per cambiare password usa il link "Password dimenticata?" dalla schermata di login
   </p>
   <p class="sync-info" id="last-sync-label"></p>
 </div>
