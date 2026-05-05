@@ -524,7 +524,10 @@ async function loadStatoAbbonamento() {
     const pauseUsate = data.pause_utilizzate || 0;
 
     // Limite "1 anno dalla sottoscrizione"
-    let entroAnno = false;
+    // Se data_sottoscrizione è null (account legacy o appena creato senza
+    // valore impostato), assumiamo "entro l'anno" — il backend comunque
+    // valida questo controllo nelle funzioni RPC.
+    let entroAnno = true;
     if (sottoscr) {
       const limiteAnno = new Date(sottoscr.getTime());
       limiteAnno.setFullYear(limiteAnno.getFullYear() + 1);
