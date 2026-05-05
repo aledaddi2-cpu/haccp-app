@@ -11,8 +11,18 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 const ADMIN_API = SUPABASE_URL + '/functions/v1/admin-api';
 
+// La console admin NON persiste la sessione: ogni volta che si apre
+// la pagina, l'utente deve riautenticarsi. Questo impedisce che chi
+// accede al PC trovi una sessione admin già pronta.
+// Inoltre usa una storageKey separata per non interferire con la
+// sessione dell'app cliente sullo stesso dominio.
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+  auth: {
+    persistSession: false,       // ← chiave: niente storage tra pagine/reload
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+    storageKey: 'haccp-console-session'  // ← namespace separato
+  }
 });
 
 // ── STATO ────────────────────────────────────────────────────────
@@ -24,16 +34,10 @@ let currentQRPayload = null;
 // INIT
 // ════════════════════════════════════════════════════════════════
 async function init() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    const role = session.user.app_metadata?.role || session.user.user_metadata?.role;
-    if (role === 'superadmin') {
-      enterDashboard(session);
-      return;
-    }
-    // logato ma non superadmin → forza logout silenzioso
-    await sb.auth.signOut();
-  }
+  // Con persistSession: false la sessione non viene mai memorizzata
+  // tra reload, quindi all'apertura della console mostriamo sempre
+  // il form di login. La sessione dell'app cliente (su un altro
+  // storageKey) NON viene toccata.
   showLogin();
 }
 
@@ -355,7 +359,7 @@ async function doSaveEdit() {
 // ════════════════════════════════════════════════════════════════
 // QR SETUP
 // ════════════════════════════════════════════════════════════════
-function openQRModal(userId) {
+async function openQRModal(userId) {
   const c = allClients.find(x => x.user_id === userId);
   if (!c) return;
   const payload = {
@@ -366,42 +370,80 @@ function openQRModal(userId) {
   currentQRPayload = JSON.stringify(payload);
   document.getElementById('qr-nome').textContent = c.nome_ristorante;
   document.getElementById('qr-payload').textContent = JSON.stringify(payload, null, 2);
-  // Genera il QR (libreria qrcodejs di David Shim)
   const target = document.getElementById('qr-target');
-  target.innerHTML = '';
-  if (typeof QRCode === 'undefined') {
-    target.textContent = 'Errore: libreria QRCode non caricata. Ricarica la pagina (Ctrl+Shift+R).';
-    return;
-  }
-  new QRCode(target, {
-    text: currentQRPayload,
-    width: 240,
-    height: 240,
-    correctLevel: QRCode.CorrectLevel.M
-  });
+  target.innerHTML = '<div class="text-sm text-slate-400 p-4">Generazione QR…</div>';
+
   document.getElementById('modal-qr').classList.remove('hidden');
+
+  // Strategia 1: libreria già caricata
+  if (typeof QRCode !== 'undefined') {
+    try {
+      target.innerHTML = '';
+      new QRCode(target, {
+        text: currentQRPayload,
+        width: 240, height: 240,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      return;
+    } catch(e) { console.warn('[QR] strategia 1 fallita:', e); }
+  }
+
+  // Strategia 2: carica al volo qrcodejs da jsdelivr (CDN diverso)
+  try {
+    await loadScript('https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js');
+    if (typeof QRCode !== 'undefined') {
+      target.innerHTML = '';
+      new QRCode(target, {
+        text: currentQRPayload,
+        width: 240, height: 240,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      return;
+    }
+  } catch(e) { console.warn('[QR] strategia 2 fallita:', e); }
+
+  // Strategia 3: fallback definitivo — usa un servizio web che restituisce
+  // direttamente il PNG (nessun JS richiesto, funziona sempre)
+  target.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=' +
+            encodeURIComponent(currentQRPayload);
+  img.alt = 'QR Code';
+  img.style.cssText = 'width:240px;height:240px;display:block;margin:0 auto;';
+  img.onerror = () => { target.innerHTML = '<div class="text-red-500 text-sm p-4">Impossibile generare il QR. Verifica connessione.</div>'; };
+  target.appendChild(img);
+}
+
+// Helper: carica uno script esterno e attende che sia pronto
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    // Se è già stato caricato, resolve subito
+    if ([...document.scripts].some(s => s.src === url)) return resolve();
+    const s = document.createElement('script');
+    s.src = url;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('script load failed: ' + url));
+    document.head.appendChild(s);
+  });
 }
 
 function downloadQR() {
-  // qrcodejs genera un <canvas> dentro #qr-target
   const canvas = document.querySelector('#qr-target canvas');
-  if (!canvas) {
-    // fallback: alcune versioni rendono solo <img>
-    const img = document.querySelector('#qr-target img');
-    if (img) {
-      const a = document.createElement('a');
-      a.href = img.src;
-      a.download = `qr-haccp-${Date.now()}.png`;
-      a.click();
-      return;
-    }
-    showToast('QR non disponibile per il download', 'error');
+  if (canvas) {
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `qr-haccp-${Date.now()}.png`;
+    a.click();
     return;
   }
-  const a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
-  a.download = `qr-haccp-${Date.now()}.png`;
-  a.click();
+  const img = document.querySelector('#qr-target img');
+  if (img) {
+    // Apre l'immagine in una nuova tab → l'utente fa "salva come"
+    window.open(img.src, '_blank');
+    showToast('Immagine aperta — usa "Salva con nome"', 'info');
+    return;
+  }
+  showToast('QR non disponibile per il download', 'error');
 }
 
 // ════════════════════════════════════════════════════════════════
