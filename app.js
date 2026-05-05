@@ -33,6 +33,7 @@ let currentOperatore = null;
 let currentUserId    = null;
 let currentAziendaId = null;
 let currentRole      = null;
+let currentTermsAccepted = false;
 let onlyErr       = false;
 let isOnline      = navigator.onLine;
 let modalEntry    = null;
@@ -47,7 +48,7 @@ function hideLoading() {
   const el = document.getElementById('loading-screen');
   if (el) el.style.display = 'none';
 }
-function isAdmin() { return currentRole === 'admin'; }
+function isAdmin() { return currentRole === 'admin' || currentRole === 'superadmin'; }
 
 // ═══════════════════════════════════════════════════════════════
 // INIT
@@ -66,6 +67,7 @@ async function init() {
     applyConfig();
     document.getElementById('operatore-badge').textContent = '👤 ' + currentOperatore;
     renderAll();
+    await checkTermsAndShow();
     setTimeout(checkStampaBanner, 2000);
   } else {
     hideLoading();
@@ -144,6 +146,7 @@ async function doLogin() {
     hideLoading();
     applyConfig();
     renderAll();
+    await checkTermsAndShow();
     setTimeout(checkStampaBanner, 2000);
     btn.disabled = false; btn.textContent = 'Accedi →';
   } catch(e) {
@@ -170,6 +173,67 @@ async function doRecoverPassword() {
   const { error } = await sb.auth.resetPasswordForEmail(email);
   if (error) showToast('Errore: ' + error.message, 'error');
   else showToast('Email di recupero inviata a ' + email, 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DISCLAIMER LEGALE — modale bloccante post-login
+// ═══════════════════════════════════════════════════════════════
+async function checkTermsAndShow() {
+  // Il superadmin bypassa il disclaimer (è il fornitore del servizio)
+  if (currentRole === 'superadmin') return;
+  if (!currentUserId) return;
+
+  try {
+    const { data, error } = await sb
+      .from('profiles')
+      .select('accetta_termini, data_accettazione')
+      .eq('user_id', currentUserId)
+      .single();
+    if (error) {
+      console.error('[Terms] errore lettura profilo:', error);
+      return;  // in caso di errore, non blocchiamo l'utente
+    }
+    currentTermsAccepted = data?.accetta_termini === true;
+    if (!currentTermsAccepted) {
+      // Mostra il modale bloccante
+      document.getElementById('terms-screen').style.display = 'flex';
+    }
+  } catch(e) {
+    console.error('[Terms]', e);
+  }
+}
+
+async function acceptTerms() {
+  if (!currentUserId) return;
+  const btn = document.getElementById('terms-btn');
+  btn.disabled = true;
+  btn.textContent = 'Salvataggio...';
+  try {
+    // 1. Aggiorna profilo: accetta_termini=true + timestamp
+    const now = new Date().toISOString();
+    const { error: errProf } = await sb
+      .from('profiles')
+      .update({ accetta_termini: true, data_accettazione: now })
+      .eq('user_id', currentUserId);
+    if (errProf) throw errProf;
+
+    // 2. Audit log
+    await sb.from('terms_acceptance_log').insert({
+      user_id: currentUserId,
+      accepted_at: now,
+      user_agent: navigator.userAgent.substring(0, 500),
+      terms_version: 'v1.0'
+    });
+
+    currentTermsAccepted = true;
+    document.getElementById('terms-screen').style.display = 'none';
+    showToast('✓ Termini accettati. Buon lavoro!', 'success');
+  } catch(e) {
+    console.error('[acceptTerms]', e);
+    showToast('Errore: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Accetto e attivo il servizio →';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
