@@ -143,10 +143,12 @@ function updateStats() {
   const att = allClients.filter(c => c.stato === 'attivo').length;
   const sca = allClients.filter(c => c.stato === 'in_scadenza').length;
   const exp = allClients.filter(c => c.stato === 'scaduto').length;
+  const sos = allClients.filter(c => c.sospeso).length;
   document.getElementById('stat-totale').textContent   = tot;
   document.getElementById('stat-attivi').textContent   = att;
   document.getElementById('stat-scadenza').textContent = sca;
   document.getElementById('stat-scaduti').textContent  = exp;
+  document.getElementById('stat-sospesi').textContent  = sos;
 }
 
 function renderTable() {
@@ -155,7 +157,8 @@ function renderTable() {
   const body    = document.getElementById('clienti-body');
 
   const filtered = allClients.filter(c => {
-    if (stato !== 'all' && c.stato !== stato) return false;
+    if (stato === 'sospeso' && !c.sospeso) return false;
+    if (stato !== 'all' && stato !== 'sospeso' && c.stato !== stato) return false;
     if (q && !(
       (c.nome_ristorante || '').toLowerCase().includes(q) ||
       (c.email           || '').toLowerCase().includes(q) ||
@@ -173,9 +176,11 @@ function renderTable() {
     const piano    = c.piano_abbonamento === '24.99_automatico'
       ? '<span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-[11px] font-bold">24.99 auto</span>'
       : '<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[11px] font-bold">14.99 manuale</span>';
-    const stBadge  = c.stato === 'attivo'      ? '<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[11px] font-bold">attivo</span>'
-                   : c.stato === 'in_scadenza' ? '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[11px] font-bold">in scadenza</span>'
-                                               : '<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-[11px] font-bold">scaduto</span>';
+    const stBadge  = c.sospeso
+      ? '<span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[11px] font-bold">⏸ sospeso</span>'
+      : c.stato === 'attivo'      ? '<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[11px] font-bold">attivo</span>'
+      : c.stato === 'in_scadenza' ? '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[11px] font-bold">in scadenza</span>'
+                                  : '<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-[11px] font-bold">scaduto</span>';
     const dataIT   = new Date(c.data_scadenza).toLocaleDateString('it-IT');
     const giorniLbl = c.giorni_mancanti < 0
       ? `scaduto da ${-c.giorni_mancanti} g`
@@ -204,6 +209,12 @@ function renderTable() {
                     class="p-1.5 rounded border border-slate-300 hover:bg-purple-50 hover:border-purple-400 text-sm">▦</button>
             <button onclick="openEditModal('${c.user_id}')" title="Modifica"
                     class="p-1.5 rounded border border-slate-300 hover:bg-slate-100 text-sm">✎</button>
+            ${c.sospeso
+              ? `<button onclick="doResume('${c.user_id}')" title="Riattiva abbonamento"
+                    class="p-1.5 rounded border border-green-300 bg-green-50 hover:bg-green-100 text-green-700 text-sm">▶</button>`
+              : `<button onclick="openSuspendModal('${c.user_id}')" title="Sospendi abbonamento"
+                    class="p-1.5 rounded border border-amber-300 hover:bg-amber-50 hover:border-amber-400 text-amber-700 text-sm">⏸</button>`
+            }
             <button onclick="doResetPassword('${c.user_id}')" title="Reset password"
                     class="p-1.5 rounded border border-slate-300 hover:bg-amber-50 hover:border-amber-400 text-sm">⚿</button>
             <button onclick="doDeleteClient('${c.user_id}')" title="Elimina"
@@ -352,6 +363,47 @@ async function doSaveEdit() {
     await callAdminApi('update_client', payload);
     closeModal('modal-edit');
     showToast('✓ Modifiche salvate', 'success');
+    await loadClients();
+  } catch(e) { showToast('Errore: ' + e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════════
+// SOSPENSIONE ABBONAMENTO
+// ════════════════════════════════════════════════════════════════
+function openSuspendModal(userId) {
+  const c = allClients.find(x => x.user_id === userId);
+  if (!c) return;
+  editingUserId = userId;
+  document.getElementById('suspend-nome').textContent = c.nome_ristorante || c.email;
+  document.getElementById('suspend-motivo').value = '';
+  document.getElementById('modal-suspend').classList.remove('hidden');
+  setTimeout(() => document.getElementById('suspend-motivo').focus(), 100);
+}
+
+async function doSuspend() {
+  if (!editingUserId) return;
+  const motivo = document.getElementById('suspend-motivo').value.trim();
+  const btn = document.getElementById('suspend-submit');
+  btn.disabled = true; btn.textContent = 'Sospensione…';
+  try {
+    await callAdminApi('suspend_subscription', { user_id: editingUserId, motivo });
+    closeModal('modal-suspend');
+    showToast('⏸ Abbonamento sospeso', 'success');
+    await loadClients();
+  } catch(e) {
+    showToast('Errore: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '⏸ Sospendi';
+  }
+}
+
+async function doResume(userId) {
+  const c = allClients.find(x => x.user_id === userId);
+  if (!c) return;
+  if (!confirm(`Riattivare l'abbonamento di "${c.nome_ristorante || c.email}"?`)) return;
+  try {
+    await callAdminApi('resume_subscription', { user_id: userId });
+    showToast('▶ Abbonamento riattivato', 'success');
     await loadClients();
   } catch(e) { showToast('Errore: ' + e.message, 'error'); }
 }
