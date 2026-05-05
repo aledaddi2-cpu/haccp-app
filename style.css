@@ -266,3 +266,43 @@ textarea { resize:vertical; min-height:68px; }
   box-shadow:none;
 }
 .terms-foot { font-size:10px; opacity:.4; margin-top:14px; }
+
+
+/* ── SETUP SUB-TABS (pillole) ── */
+.setup-pills {
+  display:flex; gap:6px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+  position:sticky; top:88px; z-index:10;
+  background:var(--gray-bg);
+  padding:6px 0;
+}
+.setup-pill {
+  padding:7px 13px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+  border:1.5px solid var(--border);
+  background:var(--surface);
+  color:var(--text-muted);
+  transition:all .15s;
+  user-select:none;
+  white-space:nowrap;
+}
+.setup-pill.active {
+  background:var(--navy);
+  color:#fff;
+  border-color:var(--navy);
+}
+.setup-pill-danger.active {
+  background:var(--red);
+  border-color:var(--red);
+}
+.setup-pill-danger:not(.active) {
+  color:var(--red);
+  border-color:#f3c0c0;
+}
+.setup-tab { display:none; }
+.setup-tab.active { display:block; animation:setupFadeIn .2s ease; }
+@keyframes setupFadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }

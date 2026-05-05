@@ -487,6 +487,15 @@ function setArea(area, el) {
   renderDevices();
 }
 
+function setSetupTab(name, el) {
+  // Cambia il tab interno della sezione Setup
+  document.querySelectorAll('.setup-pill').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.setup-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const target = document.getElementById('setup-tab-' + name);
+  if (target) target.classList.add('active');
+}
+
 function renderDevices() {
   const list = document.getElementById('device-list');
   if (!list) return;

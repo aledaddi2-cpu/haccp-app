@@ -212,80 +212,123 @@
 
 <!-- SETUP -->
 <div id="screen-setup" class="screen">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <div class="section-title" style="margin:0;">Apparecchi</div>
-    <button onclick="pushConfig()" style="font-size:11px;font-weight:700;padding:6px 12px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;" id="sync-cfg-btn">☁ Sincronizza</button>
+
+  <!-- Sotto-tab a pillole -->
+  <div class="setup-pills" id="setup-pills">
+    <span class="setup-pill active" onclick="setSetupTab('apparecchi',this)">❄️ Apparecchi</span>
+    <span class="setup-pill" onclick="setSetupTab('anagrafica',this)">🏢 Anagrafica</span>
+    <span class="setup-pill" onclick="setSetupTab('orari',this)">⏰ Orari</span>
+    <span class="setup-pill setup-pill-danger" onclick="setSetupTab('zona',this)">⚠️ Zona pericolosa</span>
   </div>
-  <div id="setup-list" style="margin-top:8px;"></div>
-  <div class="setup-form">
-    <div class="field"><label>Nome</label><input type="text" id="new-name" placeholder="Es: Frigo Verdure"></div>
-    <div class="field"><label>Zona</label>
-      <select id="new-area">
-        <option value="CUCINA">🍳 Cucina</option>
-        <option value="BAR">☕ Bar</option>
-        <option value="RISTORANTE">🍽️ Ristorante</option>
-      </select>
+
+  <!-- TAB: Apparecchi -->
+  <div id="setup-tab-apparecchi" class="setup-tab active">
+    <div class="section-title" style="margin-top:8px;">Apparecchi configurati</div>
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+      Aggiungi i frigoriferi e congelatori da monitorare.
+      In futuro potrai associare un sensore ESP32 a ciascuno.
+    </p>
+    <div id="setup-list" style="margin-top:8px;"></div>
+    <div class="setup-form">
+      <div class="field"><label>Nome</label><input type="text" id="new-name" placeholder="Es: Frigo Verdure"></div>
+      <div class="field"><label>Zona</label>
+        <select id="new-area">
+          <option value="CUCINA">🍳 Cucina</option>
+          <option value="BAR">☕ Bar</option>
+          <option value="RISTORANTE">🍽️ Ristorante</option>
+        </select>
+      </div>
+      <div class="field"><label>Tipo</label>
+        <select id="new-type">
+          <option value="frigo">❄️ Frigo (soglia +4°C)</option>
+          <option value="gelo">🧊 Gelo (soglia -18°C)</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="addDevice()">+ Aggiungi apparecchio</button>
     </div>
-    <div class="field"><label>Tipo</label>
-      <select id="new-type">
-        <option value="frigo">❄️ Frigo (soglia +4°C)</option>
-        <option value="gelo">🧊 Gelo (soglia -18°C)</option>
-      </select>
+  </div>
+
+  <!-- TAB: Anagrafica -->
+  <div id="setup-tab-anagrafica" class="setup-tab">
+    <div class="section-title" style="margin-top:8px;">📋 Dati azienda</div>
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+      Verranno usati nelle intestazioni dei documenti ufficiali (PDF, registro, ecc.).
+    </p>
+    <div class="card">
+      <div class="field"><label>Ragione sociale / Nome locale</label><input type="text" id="cfg-azienda" placeholder="Es: Bagno Tahiti di Mario Rossi" oninput="saveCfgLocal()"></div>
+      <div class="field"><label>Indirizzo</label><input type="text" id="cfg-indirizzo" placeholder="Via Roma 1, 20100 Milano" oninput="saveCfgLocal()"></div>
+      <div class="field"><label>P.IVA / C.F.</label><input type="text" id="cfg-piva" placeholder="IT01234567890" oninput="saveCfgLocal()"></div>
+      <div class="field"><label>Telefono</label><input type="text" id="cfg-telefono" placeholder="+39 02 1234567" oninput="saveCfgLocal()"></div>
+      <div class="field"><label>Email</label><input type="text" id="cfg-email" placeholder="info@tuolocale.it" oninput="saveCfgLocal()"></div>
+      <div class="field"><label>Responsabile HACCP</label><input type="text" id="cfg-responsabile" placeholder="Nome Cognome del responsabile" oninput="saveCfgLocal()"></div>
+      <div class="field"><label>Numero registrazione sanitaria</label><input type="text" id="cfg-regsanitaria" placeholder="Es: IT 123 CE" oninput="saveCfgLocal()"></div>
+      <div class="field"><label>Data ultima verifica HACCP</label><input type="date" id="cfg-dataverifica" oninput="saveCfgLocal()"></div>
+      <button onclick="saveCfgCloud()" style="width:100%;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;margin-top:4px;">☁ Salva dati azienda</button>
     </div>
-    <button class="btn btn-primary" onclick="addDevice()">+ Aggiungi apparecchio</button>
-  </div>
 
-  <div class="separator"></div>
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <div class="section-title" style="margin:0;">Operatori</div>
-  </div>
-  <div id="operatori-setup-list" style="margin-top:8px;"></div>
-  <div style="display:flex;gap:7px;margin-top:8px;">
-    <input type="text" id="new-operatore" placeholder="Nome operatore" style="flex:1;">
-    <button onclick="addOperatore()" style="padding:10px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;">+</button>
-  </div>
-
-  <div class="separator"></div>
-  <div class="section-title">📋 Dati Azienda per Documenti Ufficiali</div>
-  <div class="card">
-    <div class="field"><label>Ragione sociale / Nome locale</label><input type="text" id="cfg-azienda" placeholder="Es: Bagno Tahiti di Mario Rossi" oninput="saveCfgLocal()"></div>
-    <div class="field"><label>Indirizzo</label><input type="text" id="cfg-indirizzo" placeholder="Via Roma 1, 20100 Milano" oninput="saveCfgLocal()"></div>
-    <div class="field"><label>P.IVA / C.F.</label><input type="text" id="cfg-piva" placeholder="IT01234567890" oninput="saveCfgLocal()"></div>
-    <div class="field"><label>Telefono</label><input type="text" id="cfg-telefono" placeholder="+39 02 1234567" oninput="saveCfgLocal()"></div>
-    <div class="field"><label>Email</label><input type="text" id="cfg-email" placeholder="info@tuolocale.it" oninput="saveCfgLocal()"></div>
-    <div class="field"><label>Responsabile HACCP</label><input type="text" id="cfg-responsabile" placeholder="Nome Cognome del responsabile" oninput="saveCfgLocal()"></div>
-    <div class="field"><label>Numero registrazione sanitaria</label><input type="text" id="cfg-regsanitaria" placeholder="Es: IT 123 CE" oninput="saveCfgLocal()"></div>
-    <div class="field"><label>Data ultima verifica HACCP</label><input type="date" id="cfg-dataverifica" oninput="saveCfgLocal()"></div>
-    <button onclick="saveCfgCloud()" style="width:100%;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;margin-top:4px;">☁ Salva dati azienda</button>
-  </div>
-
-  <div class="separator"></div>
-  <div class="section-title">Promemoria orari</div>
-  <div class="card">
-    <div id="schedule-slots-setup"></div>
+    <div class="section-title" style="margin-top:18px;">👥 Operatori</div>
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+      Lista dei nomi che possono firmare le rilevazioni di temperatura.
+    </p>
+    <div id="operatori-setup-list" style="margin-top:8px;"></div>
     <div style="display:flex;gap:7px;margin-top:8px;">
-      <input type="time" id="new-slot-time2" style="flex:1;">
-      <input type="text" id="new-slot-label2" placeholder="Es: Apertura" style="flex:1.5;">
-      <button onclick="addSlotSetup()" style="padding:10px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;">+</button>
+      <input type="text" id="new-operatore" placeholder="Nome operatore" style="flex:1;">
+      <button onclick="addOperatore()" style="padding:10px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;">+</button>
     </div>
   </div>
 
-  <div class="separator"></div>
-  <div class="section-title">Zona pericolosa</div>
-  <div style="display:flex;flex-direction:column;gap:10px;">
-    <button onclick="resetRegistrazioni()" style="width:100%;padding:13px;background:#e53935;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:14px;font-family:inherit;">
-      🗑️ Elimina tutte le registrazioni
-    </button>
-    <button onclick="resetTutto()" style="width:100%;padding:13px;background:#b71c1c;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:14px;font-family:inherit;">
-      ⚠️ Reset completo (registrazioni + apparecchi)
-    </button>
+  <!-- TAB: Orari -->
+  <div id="setup-tab-orari" class="setup-tab">
+    <div class="section-title" style="margin-top:8px;">⏰ Promemoria orari</div>
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+      Definisci gli orari in cui ricordare al personale di registrare le temperature.
+      Il pallino rosso nell'header si accende se una sessione è in ritardo.
+    </p>
+    <div class="card">
+      <div id="schedule-slots-setup"></div>
+      <div style="display:flex;gap:7px;margin-top:8px;">
+        <input type="time" id="new-slot-time2" style="flex:1;">
+        <input type="text" id="new-slot-label2" placeholder="Es: Apertura" style="flex:1.5;">
+        <button onclick="addSlotSetup()" style="padding:10px 13px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;">+</button>
+      </div>
+    </div>
   </div>
 
-  <div class="separator"></div>
-  <p style="font-size:10px;color:var(--text-muted);background:var(--blue-light);padding:8px;border-radius:6px;line-height:1.6;">
-    ☁ Database: Supabase &nbsp;·&nbsp; Per cambiare password usa il link "Password dimenticata?" dalla schermata di login
-  </p>
-  <p class="sync-info" id="last-sync-label"></p>
+  <!-- TAB: Zona pericolosa -->
+  <div id="setup-tab-zona" class="setup-tab">
+    <div class="section-title" style="margin-top:8px;color:var(--red);">⚠️ Zona pericolosa</div>
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">
+      Le operazioni qui sotto sono <b>irreversibili</b> e cancellano <b>solo i dati della tua azienda</b>.
+      I dati degli altri clienti del servizio non vengono toccati.
+    </p>
+
+    <div class="card" style="border-left:3px solid #e53935;">
+      <h4 style="font-size:13px;font-weight:700;color:var(--red);margin:0 0 6px;">🗑️ Elimina tutte le registrazioni</h4>
+      <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">
+        Cancella temperature, azioni correttive e firme. Apparecchi, operatori, configurazione e orari restano.
+      </p>
+      <button onclick="resetRegistrazioni()" style="width:100%;padding:11px;background:#e53935;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;">
+        Elimina registrazioni
+      </button>
+    </div>
+
+    <div class="card" style="border-left:3px solid #b71c1c;margin-top:8px;">
+      <h4 style="font-size:13px;font-weight:700;color:#b71c1c;margin:0 0 6px;">⚠️ Reset completo</h4>
+      <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">
+        Cancella <b>tutto</b>: registrazioni, apparecchi, operatori, slot orari, dati anagrafici. L'account resta attivo ma vuoto.
+      </p>
+      <button onclick="resetTutto()" style="width:100%;padding:11px;background:#b71c1c;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;">
+        Reset completo
+      </button>
+    </div>
+
+    <div class="separator" style="margin:16px 0;"></div>
+    <p style="font-size:10px;color:var(--text-muted);background:var(--blue-light);padding:8px;border-radius:6px;line-height:1.6;">
+      ☁ Database: Supabase &nbsp;·&nbsp; Per cambiare password usa il link "Password dimenticata?" dalla schermata di login
+    </p>
+    <p class="sync-info" id="last-sync-label"></p>
+  </div>
+
 </div>
 
 <div id="toast-wrap"></div>
