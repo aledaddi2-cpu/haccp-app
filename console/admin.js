@@ -502,6 +502,220 @@ function showToast(msg, type='success') {
 }
 
 // ════════════════════════════════════════════════════════════════
-// START
+// ════════════════════════════════════════════════════════════════
+// VIEW NAVIGATION (Clienti / Audit / Cestino)
+// ════════════════════════════════════════════════════════════════
+function setView(name, btn) {
+  // Reset pillole
+  document.querySelectorAll('.nav-pill').forEach(p => {
+    p.classList.remove('bg-slate-800','text-white','nav-pill-active');
+    p.classList.add('bg-white','border','border-slate-300','text-slate-700');
+  });
+  // Attiva pillola corrente
+  btn.classList.add('bg-slate-800','text-white','nav-pill-active');
+  btn.classList.remove('bg-white','border','border-slate-300','text-slate-700');
+
+  // Mostra view
+  document.getElementById('view-clients').classList.add('hidden');
+  document.getElementById('view-audit').classList.add('hidden');
+  document.getElementById('view-trash').classList.add('hidden');
+  document.getElementById('view-' + name).classList.remove('hidden');
+
+  // Quando entri in audit/trash, popola le select dei clienti
+  if (name === 'audit')  populateClientSelect('audit-client');
+  if (name === 'trash')  populateClientSelect('trash-client');
+}
+
+function populateClientSelect(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  // Mantieni eventuale selezione corrente
+  const current = sel.value;
+  // Pulisci e ripopola
+  sel.innerHTML = (selectId === 'trash-client'
+    ? '<option value="">Seleziona cliente</option>'
+    : '<option value="">Tutti i clienti</option>');
+  allClients.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.azienda_id;
+    opt.textContent = c.nome_ristorante + ' (' + c.email + ')';
+    sel.appendChild(opt);
+  });
+  if (current) sel.value = current;
+}
+
+// ════════════════════════════════════════════════════════════════
+// AUDIT LOG
+// ════════════════════════════════════════════════════════════════
+let lastAuditResults = [];
+
+async function loadAudit() {
+  const body = document.getElementById('audit-body');
+  body.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm">Caricamento…</td></tr>';
+
+  const days = parseInt(document.getElementById('audit-period').value);
+  const from = new Date(Date.now() - days*86400*1000).toISOString();
+
+  const params = {
+    from,
+    azienda_id: document.getElementById('audit-client').value || undefined,
+    table_name: document.getElementById('audit-table').value || undefined,
+    operation:  document.getElementById('audit-op').value     || undefined,
+    limit: 500
+  };
+  // Rimuovi chiavi undefined
+  Object.keys(params).forEach(k => params[k] === undefined && delete params[k]);
+
+  try {
+    const r = await callAdminApi('list_audit', params);
+    lastAuditResults = r.logs || [];
+    renderAuditTable();
+    document.getElementById('audit-count').textContent =
+      `${lastAuditResults.length} record (limite ${r.limit})`;
+  } catch(e) {
+    body.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 text-sm">${e.message}</td></tr>`;
+  }
+}
+
+function renderAuditTable() {
+  const body = document.getElementById('audit-body');
+  if (!lastAuditResults.length) {
+    body.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm">Nessun log trovato per i filtri selezionati</td></tr>';
+    return;
+  }
+  const opColors = {
+    INSERT:      'bg-green-100 text-green-800',
+    UPDATE:      'bg-blue-100 text-blue-800',
+    DELETE:      'bg-red-100 text-red-800',
+    SOFT_DELETE: 'bg-orange-100 text-orange-800',
+    RESTORE:     'bg-purple-100 text-purple-800'
+  };
+  body.innerHTML = lastAuditResults.map(l => {
+    const dt = new Date(l.performed_at).toLocaleString('it-IT');
+    const opCls = opColors[l.operation] || 'bg-slate-100 text-slate-700';
+    let dettagli = '';
+    if (l.operation === 'UPDATE' && l.changed && l.changed.length > 0) {
+      dettagli = '<details class="cursor-pointer"><summary class="text-xs text-slate-600 hover:text-slate-900">' +
+        escapeHtml(l.changed.join(', ')) + '</summary>' +
+        '<pre class="text-[10px] mt-1 p-2 bg-slate-50 rounded overflow-auto max-w-md">' +
+        escapeHtml(JSON.stringify({ old: l.old_data, new: l.new_data }, null, 1)) +
+        '</pre></details>';
+    } else if (l.operation === 'DELETE' || l.operation === 'SOFT_DELETE') {
+      dettagli = '<details class="cursor-pointer"><summary class="text-xs text-slate-600 hover:text-slate-900">vedi dati cancellati</summary>' +
+        '<pre class="text-[10px] mt-1 p-2 bg-slate-50 rounded overflow-auto max-w-md">' +
+        escapeHtml(JSON.stringify(l.old_data, null, 1)) +
+        '</pre></details>';
+    } else if (l.operation === 'INSERT') {
+      dettagli = '<details class="cursor-pointer"><summary class="text-xs text-slate-600 hover:text-slate-900">vedi dati creati</summary>' +
+        '<pre class="text-[10px] mt-1 p-2 bg-slate-50 rounded overflow-auto max-w-md">' +
+        escapeHtml(JSON.stringify(l.new_data, null, 1)) +
+        '</pre></details>';
+    }
+    return `<tr class="border-b border-slate-100 hover:bg-slate-50">
+      <td class="py-2.5 px-3 text-xs text-slate-600 whitespace-nowrap">${dt}</td>
+      <td class="py-2.5 px-3 text-xs">${escapeHtml(l.user_email || '—')}<br><span class="text-slate-400">${escapeHtml(l.user_role || '')}</span></td>
+      <td class="py-2.5 px-3"><code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">${escapeHtml(l.table_name)}</code></td>
+      <td class="py-2.5 px-3"><span class="${opCls} px-2 py-0.5 rounded-full text-[11px] font-bold">${l.operation}</span></td>
+      <td class="py-2.5 px-3">${dettagli}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportAuditCSV() {
+  if (!lastAuditResults.length) {
+    showToast('Nessun dato da esportare. Esegui prima una ricerca.', 'warning');
+    return;
+  }
+  const headers = ['Data/Ora','Utente','Ruolo','Azienda','Tabella','Operazione','Record ID','Campi modificati'];
+  const rows = lastAuditResults.map(l => [
+    new Date(l.performed_at).toLocaleString('it-IT'),
+    l.user_email || '',
+    l.user_role || '',
+    l.azienda_id || '',
+    l.table_name,
+    l.operation,
+    l.record_id || '',
+    (l.changed || []).join('; ')
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(c =>
+    `"${String(c).replace(/"/g,'""')}"`
+  ).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `audit_log_${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV scaricato', 'success');
+}
+
+// ════════════════════════════════════════════════════════════════
+// CESTINO (soft-deleted)
+// ════════════════════════════════════════════════════════════════
+let lastTrashResults = [];
+let lastTrashTable = null;
+
+async function loadTrash() {
+  const azienda_id = document.getElementById('trash-client').value;
+  const table_name = document.getElementById('trash-table').value;
+  if (!azienda_id) { showToast('Seleziona un cliente', 'warning'); return; }
+
+  const body = document.getElementById('trash-body');
+  body.innerHTML = '<tr><td colspan="3" class="p-8 text-center text-slate-400 text-sm">Caricamento…</td></tr>';
+
+  try {
+    const r = await callAdminApi('list_trash', { azienda_id, table_name });
+    lastTrashResults = r.records || [];
+    lastTrashTable   = r.table_name;
+    renderTrashTable();
+    document.getElementById('trash-count').textContent = `${lastTrashResults.length} record nel cestino`;
+  } catch(e) {
+    body.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-red-500 text-sm">${e.message}</td></tr>`;
+  }
+}
+
+function renderTrashTable() {
+  const body = document.getElementById('trash-body');
+  if (!lastTrashResults.length) {
+    body.innerHTML = '<tr><td colspan="3" class="p-8 text-center text-slate-400 text-sm">Cestino vuoto per questo cliente</td></tr>';
+    return;
+  }
+  body.innerHTML = lastTrashResults.map(r => {
+    const dl = r.deleted_at ? new Date(r.deleted_at).toLocaleString('it-IT') : '—';
+    // Riassunto dati basato sulla tabella
+    let summary = '';
+    if (lastTrashTable === 'temperature') {
+      summary = `<b>${escapeHtml(r.apparecchio || '')}</b> · ${r.temp}°C · ${escapeHtml(r.data || '')} ${escapeHtml(r.ora || '')} <span class="text-slate-400">(${escapeHtml(r.stato || '')})</span>`;
+    } else if (lastTrashTable === 'azioni_correttive') {
+      summary = `<b>${escapeHtml(r.apparecchio || '')}</b> · ${escapeHtml(r.data_anomalia || '')} ${escapeHtml(r.ora_anomalia || '')} · ${escapeHtml((r.azioni || '').substring(0,50))}`;
+    } else if (lastTrashTable === 'firme') {
+      summary = `<b>${escapeHtml(r.operatore || '')}</b> · ${escapeHtml(r.data || '')} ${escapeHtml(r.ora || '')}`;
+    }
+    return `<tr class="border-b border-slate-100 hover:bg-slate-50">
+      <td class="py-2.5 px-3 text-xs text-slate-600 whitespace-nowrap">${dl}</td>
+      <td class="py-2.5 px-3 text-sm">${summary}</td>
+      <td class="py-2.5 px-3 text-right">
+        <button onclick="doRestore('${r.id}')"
+                class="px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-700 text-white text-xs font-bold">
+          ↩ Ripristina
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function doRestore(id) {
+  if (!confirm('Ripristinare questo record? Tornerà visibile al cliente.')) return;
+  try {
+    await callAdminApi('restore_record', { table_name: lastTrashTable, id });
+    showToast('✓ Record ripristinato', 'success');
+    await loadTrash();   // refresh cestino
+  } catch(e) {
+    showToast('Errore: ' + e.message, 'error');
+  }
+}
+
+
 // ════════════════════════════════════════════════════════════════
 init();
