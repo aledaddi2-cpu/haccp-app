@@ -1432,12 +1432,17 @@ function stampaDiretto() {
 // ═══════════════════════════════════════════════════════════════
 async function resetRegistrazioni() {
   if (!isAdmin()) { showToast('Solo Admin','error'); return; }
-  if (!confirm("Sei sicuro di voler eliminare TUTTE le registrazioni dell'azienda?\nQuesta operazione è irreversibile.")) return;
+  if (!confirm("Sei sicuro di voler eliminare TUTTE le registrazioni dell'azienda?\nVerranno spostate nel cestino e potranno essere recuperate solo dall'amministratore del servizio.")) return;
   if (!confirm('ULTIMA CONFERMA: eliminare tutte le registrazioni?')) return;
   try {
-    await sb.from('temperature').delete().eq('azienda_id', currentAziendaId);
-    await sb.from('azioni_correttive').delete().eq('azienda_id', currentAziendaId);
-    await sb.from('firme').delete().eq('azienda_id', currentAziendaId);
+    // Soft delete: marchiamo come cancellate ma restano nel DB (recuperabili)
+    const now = new Date().toISOString();
+    await sb.from('temperature').update({ deleted_at: now, deleted_by: currentUserId })
+            .eq('azienda_id', currentAziendaId).is('deleted_at', null);
+    await sb.from('azioni_correttive').update({ deleted_at: now, deleted_by: currentUserId })
+            .eq('azienda_id', currentAziendaId).is('deleted_at', null);
+    await sb.from('firme').update({ deleted_at: now, deleted_by: currentUserId })
+            .eq('azienda_id', currentAziendaId).is('deleted_at', null);
     cloudData = [];
     cloudAzioni = [['Data Anomalia','Ora Anomalia','Apparecchio','Zona','Temp Rilevata','Azioni Eseguite','Note','Responsabile','Salvato Il']];
     cloudFirme = [];
@@ -1448,7 +1453,7 @@ async function resetRegistrazioni() {
     localStorage.setItem('h_queue',     JSON.stringify([]));
     localStorage.setItem('h_lasttemps', JSON.stringify({}));
     buildCorrective();
-    showToast('Registrazioni eliminate', 'success');
+    showToast('Registrazioni archiviate (recuperabili da admin)', 'success');
     updateQueueInfo();
     buildDash();
     renderDevices();
@@ -1457,12 +1462,18 @@ async function resetRegistrazioni() {
 
 async function resetTutto() {
   if (!isAdmin()) { showToast('Solo Admin','error'); return; }
-  if (!confirm("Sei sicuro di voler eliminare TUTTO?\nApparecchi, operatori, registrazioni e configurazione di questa azienda.\nOperazione irreversibile.")) return;
+  if (!confirm("Sei sicuro di voler eliminare TUTTO?\nApparecchi, operatori, registrazioni e configurazione di questa azienda.\nLe registrazioni resteranno recuperabili dall'admin del servizio.")) return;
   if (!confirm('ULTIMA CONFERMA: reset completo?')) return;
   try {
-    await sb.from('temperature').delete().eq('azienda_id', currentAziendaId);
-    await sb.from('azioni_correttive').delete().eq('azienda_id', currentAziendaId);
-    await sb.from('firme').delete().eq('azienda_id', currentAziendaId);
+    // Soft delete sulle 3 tabelle storiche (per audit/recupero)
+    const now = new Date().toISOString();
+    await sb.from('temperature').update({ deleted_at: now, deleted_by: currentUserId })
+            .eq('azienda_id', currentAziendaId).is('deleted_at', null);
+    await sb.from('azioni_correttive').update({ deleted_at: now, deleted_by: currentUserId })
+            .eq('azienda_id', currentAziendaId).is('deleted_at', null);
+    await sb.from('firme').update({ deleted_at: now, deleted_by: currentUserId })
+            .eq('azienda_id', currentAziendaId).is('deleted_at', null);
+    // Delete fisico sulle anagrafiche (audit_log conserva comunque la traccia)
     await sb.from('apparecchi').delete().eq('azienda_id', currentAziendaId);
     await sb.from('operatori').delete().eq('azienda_id', currentAziendaId);
     await sb.from('slot_orari').delete().eq('azienda_id', currentAziendaId);
