@@ -664,6 +664,23 @@ function applyConfig() {
     const el = document.getElementById(id);
     if (el) el.value = fields[id] || '';
   }
+  // Mostra la sezione WhatsApp solo per il piano 24.99 (automatico)
+  const waBlock = document.getElementById('wa-block');
+  if (waBlock) {
+    const isAutomatico = (aziendaCfg.piano_abbonamento || '') === '24.99_automatico';
+    waBlock.style.display = isAutomatico ? '' : 'none';
+  }
+  // Mostra il tipo di notifica impostato dal superadmin (sola lettura)
+  const waLabelEl = document.getElementById('wa-notif-tipo-label');
+  if (waLabelEl) {
+    const tipoMap = {
+      'entrambi':       '📲 Messaggio + 📞 Chiamata vocale',
+      'solo_messaggio': '📲 Solo messaggio WhatsApp',
+      'solo_chiamata':  '📞 Solo chiamata vocale',
+    };
+    const tipo = aziendaCfg.wa_notif_tipo || 'entrambi';
+    waLabelEl.textContent = tipoMap[tipo] || tipoMap['entrambi'];
+  }
 }
 
 function renderAll() {
@@ -998,19 +1015,25 @@ async function sendVoiceAlert(apparecchio, temp, area) {
                + `&apikey=${encodeURIComponent(apikey)}`
                + `&text=${encodeURIComponent(testo)}`;
   // 2. Chiamata vocale (parte 2 secondi dopo per non sovrapporsi)
-  const urlVoice = `https://api.callmebot.com/whatsapp/voicecall.php`
+  // Endpoint corretto: https://www.callmebot.com/phone-call/
+  const urlVoice = `https://api.callmebot.com/call.php`
                  + `?phone=${encodeURIComponent(tel)}`
                  + `&apikey=${encodeURIComponent(apikey)}`
                  + `&text=${encodeURIComponent(testo)}`
                  + `&lang=it-IT`;
+  const tipo = (aziendaCfg.wa_notif_tipo || 'entrambi');
   try {
-    await fetch(urlMsg,   { mode: 'no-cors' });
-    console.log('[Alert] messaggio WhatsApp inviato a', tel);
-    setTimeout(() => {
-      fetch(urlVoice, { mode: 'no-cors' })
-        .then(() => console.log('[Alert] chiamata vocale inviata a', tel))
-        .catch(e  => console.warn('[Alert] errore chiamata vocale:', e));
-    }, 2000);
+    if (tipo === 'entrambi' || tipo === 'solo_messaggio') {
+      await fetch(urlMsg, { mode: 'no-cors' });
+      console.log('[Alert] messaggio WhatsApp inviato a', tel);
+    }
+    if (tipo === 'entrambi' || tipo === 'solo_chiamata') {
+      setTimeout(() => {
+        fetch(urlVoice, { mode: 'no-cors' })
+          .then(() => console.log('[Alert] chiamata vocale inviata a', tel))
+          .catch(e  => console.warn('[Alert] errore chiamata vocale:', e));
+      }, tipo === 'entrambi' ? 2000 : 0);
+    }
   } catch (e) {
     console.warn('[Alert] errore invio:', e);
   }

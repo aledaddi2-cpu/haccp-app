@@ -369,6 +369,7 @@
       <div class="field"><label>Numero registrazione sanitaria</label><input type="text" id="cfg-regsanitaria" placeholder="Es: IT 123 CE" oninput="saveCfgLocal()"></div>
       <div class="field"><label>Data ultima verifica HACCP</label><input type="date" id="cfg-dataverifica" oninput="saveCfgLocal()"></div>
 
+      <div id="wa-block">
       <div class="separator" style="margin:14px 0 10px;"></div>
       <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px;">📞 Chiamata vocale anomalie (CallMeBot)</div>
       <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;line-height:1.5;">
@@ -377,6 +378,11 @@
       </p>
       <div class="field"><label>Numero WhatsApp (es. +391234567890)</label><input type="tel" id="cfg-wa-telefono" placeholder="+391234567890" oninput="saveCfgLocal()"></div>
       <div class="field"><label>CallMeBot API Key</label><input type="text" id="cfg-wa-apikey" placeholder="123456" oninput="saveCfgLocal()"></div>
+      <div class="field" style="margin-top:8px;">
+        <label style="font-size:10px;color:var(--text-muted);display:block;margin-bottom:3px;">Tipo di notifica (impostato dal gestore del servizio)</label>
+        <div id="wa-notif-tipo-label" style="font-size:11px;font-weight:700;color:var(--navy);background:var(--bg-card,#f8f9fc);border:1px solid #e2e6ea;border-radius:6px;padding:7px 10px;">📲 Messaggio + 📞 Chiamata vocale</div>
+      </div>
+      </div>
 
       <button onclick="saveCfgCloud()" style="width:100%;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-family:inherit;margin-top:4px;">☁ Salva dati azienda</button>
     </div>
