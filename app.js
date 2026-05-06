@@ -233,13 +233,14 @@ async function doResetPassword() {
     const { error } = await sb.auth.updateUser({ password: pwd });
     if (error) throw error;
 
-    showToast('✓ Password aggiornata con successo!', 'success');
-
-    // Pulisci URL e fai logout per forzare nuovo login con la nuova password
-    setTimeout(async function() {
-      await sb.auth.signOut();
-      window.location.href = window.location.origin + window.location.pathname;
-    }, 1500);
+    // Logout immediato, poi redirect al login pulito
+    await sb.auth.signOut();
+    // Rimuovi il fragment dall'URL (contiene il token di recovery)
+    window.history.replaceState(null, '', window.location.pathname);
+    // Nascondi reset screen e mostra login
+    document.getElementById('reset-screen').style.display = 'none';
+    showLoginScreen();
+    showToast('✓ Password aggiornata! Accedi con la nuova password.', 'success');
   } catch(e) {
     console.error('[doResetPassword]', e);
     err.textContent = 'Errore: ' + e.message + '. Il link potrebbe essere scaduto, richiedi un nuovo reset.';
