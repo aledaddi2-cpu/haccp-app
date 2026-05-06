@@ -448,7 +448,7 @@ function renderZoneSetup() {
     return;
   }
   zone.forEach((z, i) => {
-    const usedByDevices = config.filter(c => c.area === z.nome).length;
+    const usedByDevices = config.filter(c => (c.area||'').trim().toLowerCase() === (z.nome||'').trim().toLowerCase()).length;
     const d = document.createElement('div');
     d.className = 'setup-item';
     d.innerHTML = `
@@ -492,7 +492,7 @@ async function deleteZona(i) {
   if (!isAdmin()) { showToast('Solo Admin', 'error'); return; }
   const z = zone[i];
   if (!z) return;
-  const usedByDevices = config.filter(c => c.area === z.nome).length;
+  const usedByDevices = config.filter(c => (c.area||'').trim().toLowerCase() === (z.nome||'').trim().toLowerCase()).length;
   if (usedByDevices > 0) {
     showToast(`Impossibile eliminare: ${usedByDevices} apparecchio/i usa questa zona`, 'error');
     return;
