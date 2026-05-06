@@ -401,9 +401,17 @@
       </div>
       <div>
         <label class="text-xs font-bold text-slate-600 block mb-1">Piano</label>
-        <select id="ef-piano" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white">
+        <select id="ef-piano" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white" onchange="toggleWaNotifTipo()">
           <option value="14.99_manuale">14.99€ Manuale</option>
           <option value="24.99_automatico">24.99€ Automatico</option>
+        </select>
+      </div>
+      <div id="ef-wa-tipo-block" style="display:none;">
+        <label class="text-xs font-bold text-slate-600 block mb-1">Tipo notifica WhatsApp <span class="text-purple-600">(solo piano 24.99)</span></label>
+        <select id="ef-wa-notif-tipo" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white">
+          <option value="entrambi">📲 Messaggio + 📞 Chiamata vocale</option>
+          <option value="solo_messaggio">📲 Solo messaggio WhatsApp</option>
+          <option value="solo_chiamata">📞 Solo chiamata vocale</option>
         </select>
       </div>
       <div>

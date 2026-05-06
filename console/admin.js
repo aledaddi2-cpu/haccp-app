@@ -348,6 +348,8 @@ function openEditModal(userId) {
   document.getElementById('ef-tel').value   = c.telefono_whatsapp || '';
   document.getElementById('ef-cmb').value   = c.callmebot_apikey || '';
   document.getElementById('ef-piano').value = c.piano_abbonamento || '14.99_manuale';
+  document.getElementById('ef-wa-notif-tipo').value = c.wa_notif_tipo || 'entrambi';
+  toggleWaNotifTipo();
   document.getElementById('ef-note').value  = c.note_admin || '';
   // Data scadenza in formato YYYY-MM-DD per <input type="date">
   if (c.data_scadenza) {
@@ -370,6 +372,9 @@ async function doSaveEdit() {
     telefono_whatsapp: document.getElementById('ef-tel').value.trim(),
     callmebot_apikey:  document.getElementById('ef-cmb').value.trim(),
     piano_abbonamento: document.getElementById('ef-piano').value,
+    wa_notif_tipo:     document.getElementById('ef-piano').value === '24.99_automatico'
+                         ? document.getElementById('ef-wa-notif-tipo').value
+                         : 'entrambi',
     note_admin:        document.getElementById('ef-note').value,
   };
   // Data scadenza opzionale: includila solo se valorizzata
@@ -749,3 +754,11 @@ async function doRestore(id) {
 
 // ════════════════════════════════════════════════════════════════
 init();
+
+// ── Toggle visibilità blocco tipo notifica WA ────────────────────────────────
+function toggleWaNotifTipo() {
+  const piano = document.getElementById('ef-piano');
+  const block = document.getElementById('ef-wa-tipo-block');
+  if (!piano || !block) return;
+  block.style.display = piano.value === '24.99_automatico' ? '' : 'none';
+}
