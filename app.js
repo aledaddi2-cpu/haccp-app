@@ -28,7 +28,8 @@ let cloudFirme    = [];
 let lastTemps     = JSON.parse(localStorage.getItem('h_lasttemps')) || {};
 let offlineQueue  = JSON.parse(localStorage.getItem('h_queue'))     || [];
 let corrective    = {};
-let currentArea   = 'CUCINA';
+let zone          = [];   // [{id, nome, emoji, ordine}] — caricate dal db
+let currentArea   = null; // impostato dinamicamente dopo pullZone
 let currentOperatore = null;
 let currentUserId    = null;
 let currentAziendaId = null;
@@ -320,6 +321,7 @@ async function syncAll() {
   if (navigator.onLine) {
     try {
       setLoadingMsg('Scarico anagrafica...');  await pullAzienda();
+      setLoadingMsg('Scarico zone...');        await pullZone();
       setLoadingMsg('Scarico apparecchi...');  await pullApparecchi();
       setLoadingMsg('Scarico operatori...');   await pullOperatori();
       setLoadingMsg('Scarico orari...');       await pullSlot();
@@ -337,6 +339,7 @@ function loadFromLocal() {
     catch(e){return fb;}
   }
   config        = sg('h_config',    []); if(!Array.isArray(config))    config=[];
+  zone          = sg('h_zone',      []); if(!Array.isArray(zone))       zone=[];
   operatori     = sg('h_operatori', []); if(!Array.isArray(operatori)) operatori=[];
   scheduleSlots = sg('h_schedule',  [{time:"09:00",label:"Apertura"},{time:"15:00",label:"Pomeriggio"},{time:"21:00",label:"Chiusura"}]);
   aziendaCfg    = sg('h_azienda',   {});
@@ -348,6 +351,7 @@ function loadFromLocal() {
 
 function saveAllLocal() {
   localStorage.setItem('h_config',    JSON.stringify(config));
+  localStorage.setItem('h_zone',      JSON.stringify(zone));
   localStorage.setItem('h_operatori', JSON.stringify(operatori));
   localStorage.setItem('h_schedule',  JSON.stringify(scheduleSlots));
   localStorage.setItem('h_azienda',   JSON.stringify(aziendaCfg));
@@ -364,6 +368,151 @@ async function pullAzienda() {
   if (error) throw error;
   aziendaCfg = data || {};
   if (aziendaCfg.dataverifica === null) aziendaCfg.dataverifica = '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ZONE — pull, render, CRUD
+// ═══════════════════════════════════════════════════════════════
+const ZONE_DEFAULT = [
+  { id: null, nome: 'Cucina',      emoji: '🍳', ordine: 0 },
+  { id: null, nome: 'Bar',         emoji: '☕', ordine: 1 },
+  { id: null, nome: 'Ristorante',  emoji: '🍽️', ordine: 2 },
+];
+
+async function pullZone() {
+  const { data, error } = await sb.from('zone')
+    .select('id, nome, emoji, ordine')
+    .eq('azienda_id', currentAziendaId)
+    .order('ordine').order('nome');
+  // Se la tabella non esiste o è vuota, usa le zone di default per retrocompatibilità
+  if (error || !data || data.length === 0) {
+    zone = ZONE_DEFAULT;
+  } else {
+    zone = data;
+  }
+  // Imposta currentArea alla prima zona disponibile se non già valida
+  if (!zone.find(z => z.nome === currentArea)) {
+    currentArea = zone[0]?.nome || null;
+  }
+}
+
+function renderAreaPills() {
+  const container = document.getElementById('area-pills');
+  if (!container) return;
+  container.innerHTML = '';
+  zone.forEach((z, i) => {
+    const sp = document.createElement('span');
+    sp.className = 'area-pill' + (z.nome === currentArea ? ' active' : '');
+    sp.textContent = (z.emoji ? z.emoji + ' ' : '') + z.nome;
+    sp.onclick = function() { setArea(z.nome, sp); };
+    container.appendChild(sp);
+  });
+}
+
+function renderAreaFilterOptions() {
+  // Aggiorna il <select id="filter-area"> nello storico
+  const sel = document.getElementById('filter-area');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="ALL">Tutte le zone</option>';
+  zone.forEach(z => {
+    const o = document.createElement('option');
+    o.value = z.nome;
+    o.textContent = (z.emoji ? z.emoji + ' ' : '') + z.nome;
+    sel.appendChild(o);
+  });
+  if ([...sel.options].find(o => o.value === prev)) sel.value = prev;
+}
+
+function renderNewAreaSelect() {
+  // Aggiorna il <select id="new-area"> nel form aggiungi apparecchio
+  const sel = document.getElementById('new-area');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '';
+  zone.forEach(z => {
+    const o = document.createElement('option');
+    o.value = z.nome;
+    o.textContent = (z.emoji ? z.emoji + ' ' : '') + z.nome;
+    sel.appendChild(o);
+  });
+  if ([...sel.options].find(o => o.value === prev)) sel.value = prev;
+}
+
+function renderZoneSetup() {
+  const list = document.getElementById('zone-setup-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!zone.length) {
+    list.innerHTML = '<div class="empty-state" style="padding:10px 0;"><p>Nessuna zona configurata.</p></div>';
+    return;
+  }
+  zone.forEach((z, i) => {
+    const usedByDevices = config.filter(c => c.area === z.nome).length;
+    const d = document.createElement('div');
+    d.className = 'setup-item';
+    d.innerHTML = `
+      <div class="device-icon" style="font-size:22px;background:var(--ice-light);">${z.emoji || '📍'}</div>
+      <div class="setup-info">
+        <div class="name">${z.nome}</div>
+        <div class="sub">${usedByDevices > 0 ? usedByDevices + ' apparecchio/i' : 'Nessun apparecchio'}</div>
+      </div>
+      <button class="del-btn" onclick="deleteZona(${i})" title="Elimina zona" ${usedByDevices > 0 ? 'disabled style="opacity:.35;cursor:not-allowed;"' : ''}>✕</button>`;
+    list.appendChild(d);
+  });
+}
+
+async function addZona() {
+  if (!isAdmin()) { showToast('Solo Admin può gestire le zone', 'error'); return; }
+  const nome  = document.getElementById('new-zona-nome').value.trim();
+  const emoji = document.getElementById('new-zona-emoji').value.trim() || '📍';
+  if (!nome) { showToast('Inserisci un nome per la zona', 'warning'); return; }
+  if (zone.find(z => z.nome.toLowerCase() === nome.toLowerCase())) {
+    showToast('Zona già esistente', 'error'); return;
+  }
+  const ordine = zone.length;
+  try {
+    const { data, error } = await sb.from('zone').insert({
+      azienda_id: currentAziendaId, nome, emoji, ordine
+    }).select().single();
+    if (error) throw error;
+    zone.push(data);
+    saveAllLocal();
+    document.getElementById('new-zona-nome').value = '';
+    document.getElementById('new-zona-emoji').value = '';
+    renderZoneSetup();
+    renderAreaPills();
+    renderAreaFilterOptions();
+    renderNewAreaSelect();
+    showToast(`Zona "${nome}" aggiunta`, 'success');
+  } catch(e) { showToast('Errore: ' + e.message, 'error'); }
+}
+
+async function deleteZona(i) {
+  if (!isAdmin()) { showToast('Solo Admin', 'error'); return; }
+  const z = zone[i];
+  if (!z) return;
+  const usedByDevices = config.filter(c => c.area === z.nome).length;
+  if (usedByDevices > 0) {
+    showToast(`Impossibile eliminare: ${usedByDevices} apparecchio/i usa questa zona`, 'error');
+    return;
+  }
+  if (!confirm(`Eliminare la zona "${z.nome}"?`)) return;
+  try {
+    if (z.id) {
+      const { error } = await sb.from('zone').delete().eq('id', z.id);
+      if (error) throw error;
+    }
+    zone.splice(i, 1);
+    if (currentArea === z.nome) currentArea = zone[0]?.nome || null;
+    saveAllLocal();
+    renderZoneSetup();
+    renderAreaPills();
+    renderAreaFilterOptions();
+    renderNewAreaSelect();
+    renderDevices();
+    showToast(`Zona "${z.nome}" eliminata`, 'success');
+  } catch(e) { showToast('Errore: ' + e.message, 'error'); }
 }
 
 async function pullApparecchi() {
@@ -506,6 +655,10 @@ function applyConfig() {
 }
 
 function renderAll() {
+  renderAreaPills();
+  renderAreaFilterOptions();
+  renderNewAreaSelect();
+  renderZoneSetup();
   renderSetup();
   renderOperatoriSetup();
   renderDevices();
@@ -1309,12 +1462,15 @@ function renderSetup() {
   const list=document.getElementById('setup-list'); if(!list)return; list.innerHTML='';
   if(!config.length){list.innerHTML='<div class="empty-state" style="padding:10px 0;"><p>Nessun apparecchio.</p></div>';return;}
   const icons={frigo:'❄️',gelo:'🧊'};
-  const areaNames={CUCINA:'Cucina',BAR:'Bar',RISTORANTE:'Ristorante'};
+  const getZoneLabel = (areaKey) => {
+    const z = zone.find(z => z.nome === areaKey);
+    return z ? (z.emoji ? z.emoji + ' ' + z.nome : z.nome) : areaKey;
+  };
   config.forEach((c,i)=>{
     const d=document.createElement('div'); d.className='setup-item';
     d.innerHTML=`<div class="device-icon ${c.type}">${icons[c.type]||'❄️'}</div>
       <div class="setup-info"><div class="name">${c.name}</div>
-        <div class="sub">${c.type==='frigo'?'Frigo (+4°C)':'Gelo (-18°C)'} · ${areaNames[c.area]||c.area}</div></div>
+        <div class="sub">${c.type==='frigo'?'Frigo (+4°C)':'Gelo (-18°C)'} · ${getZoneLabel(c.area)}</div></div>
       <button class="del-btn" onclick="deleteDevice(${i})">✕</button>`;
     list.appendChild(d);
   });

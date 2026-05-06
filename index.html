@@ -222,9 +222,7 @@
 <!-- REGISTRA -->
 <div id="screen-log" class="screen">
   <div class="area-pills" id="area-pills">
-    <span class="area-pill active" onclick="setArea('CUCINA',this)">🍳 Cucina</span>
-    <span class="area-pill" onclick="setArea('BAR',this)">☕ Bar</span>
-    <span class="area-pill" onclick="setArea('RISTORANTE',this)">🍽️ Ristorante</span>
+    <!-- Popolate dinamicamente da renderAreaPills() -->
   </div>
   <div id="device-list"></div>
   <div id="queue-info" class="queue-info"></div>
@@ -278,10 +276,8 @@
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
     <select id="filter-month" onchange="renderHistory()"></select>
     <select id="filter-area" onchange="updateDeviceFilter()">
+      <!-- Popolate dinamicamente da renderAreaFilterOptions() -->
       <option value="ALL">Tutte le zone</option>
-      <option value="CUCINA">Cucina</option>
-      <option value="BAR">Bar</option>
-      <option value="RISTORANTE">Ristorante</option>
     </select>
   </div>
   <select id="filter-device" onchange="renderHistory()" style="margin-bottom:8px;"><option value="ALL">Tutti i dispositivi</option></select>
@@ -307,6 +303,7 @@
   <!-- Sotto-tab a pillole -->
   <div class="setup-pills" id="setup-pills">
     <span class="setup-pill active" onclick="setSetupTab('apparecchi',this)">❄️ Apparecchi</span>
+    <span class="setup-pill" onclick="setSetupTab('zone',this)">📍 Zone</span>
     <span class="setup-pill" onclick="setSetupTab('anagrafica',this)">🏢 Anagrafica</span>
     <span class="setup-pill" onclick="setSetupTab('orari',this)">⏰ Orari</span>
     <span class="setup-pill setup-pill-danger" onclick="setSetupTab('zona',this)">⚠️ Zona pericolosa</span>
@@ -324,9 +321,7 @@
       <div class="field"><label>Nome</label><input type="text" id="new-name" placeholder="Es: Frigo Verdure"></div>
       <div class="field"><label>Zona</label>
         <select id="new-area">
-          <option value="CUCINA">🍳 Cucina</option>
-          <option value="BAR">☕ Bar</option>
-          <option value="RISTORANTE">🍽️ Ristorante</option>
+          <!-- Popolate dinamicamente da renderNewAreaSelect() -->
         </select>
       </div>
       <div class="field"><label>Tipo</label>
@@ -336,6 +331,26 @@
         </select>
       </div>
       <button class="btn btn-primary" onclick="addDevice()">+ Aggiungi apparecchio</button>
+    </div>
+  </div>
+
+  <!-- TAB: Zone -->
+  <div id="setup-tab-zone" class="setup-tab">
+    <div class="section-title" style="margin-top:8px;">📍 Gestione Zone</div>
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px;line-height:1.5;">
+      Le zone separano gli ambienti del tuo locale (es. Cucina, Bar, Cella frigo).
+      Ogni apparecchio viene assegnato a una zona. Non puoi eliminare una zona
+      che ha apparecchi assegnati.
+    </p>
+    <div id="zone-setup-list" style="margin-top:8px;"></div>
+    <div class="setup-form" style="margin-top:10px;">
+      <div class="field"><label>Nome zona</label>
+        <input type="text" id="new-zona-nome" placeholder="Es: Magazzino, Banco pesce…">
+      </div>
+      <div class="field"><label>Emoji (opzionale)</label>
+        <input type="text" id="new-zona-emoji" placeholder="Es: 🐟 🥩 🧊" maxlength="4" style="width:80px;">
+      </div>
+      <button class="btn btn-primary" onclick="addZona()">+ Aggiungi zona</button>
     </div>
   </div>
 
