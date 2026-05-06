@@ -404,6 +404,7 @@ async function pullTemperature() {
   const { data, error } = await sb.from('temperature')
     .select('data, ora, apparecchio, tipo, temp, stato, area, operatore')
     .eq('azienda_id', currentAziendaId)
+    .is('deleted_at', null)
     .order('data', { ascending: true })
     .order('ora',  { ascending: true });
   if (error) throw error;
@@ -418,6 +419,7 @@ async function pullAzioni() {
   const { data, error } = await sb.from('azioni_correttive')
     .select('data_anomalia, ora_anomalia, apparecchio, zona, temp_rilevata, azioni, note, responsabile, salvato_il')
     .eq('azienda_id', currentAziendaId)
+    .is('deleted_at', null)
     .order('data_anomalia', { ascending: true })
     .order('ora_anomalia',  { ascending: true });
   if (error) throw error;
@@ -436,6 +438,7 @@ async function pullFirme() {
   const { data, error } = await sb.from('firme')
     .select('data, ora, operatore, firma_b64')
     .eq('azienda_id', currentAziendaId)
+    .is('deleted_at', null)
     .order('data', { ascending: true })
     .order('ora',  { ascending: true });
   if (error) throw error;
