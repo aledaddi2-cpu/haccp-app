@@ -623,6 +623,53 @@ async function riattivaAbbonamento() {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// HELPERS: rilevamento errore "account in pausa" e popup
+// ═══════════════════════════════════════════════════════════════
+function isErroreAccountInPausa(err) {
+  if (!err) return false;
+  const code = err.code || '';
+  const msg  = (err.message || '').toLowerCase();
+  // Postgres restituisce 42501 (insufficient_privilege) per le RLS bloccate.
+  // Supabase a volte usa anche 'PGRST301' o messaggi 'row-level security policy'
+  if (code === '42501') return true;
+  if (msg.includes('row-level security') || msg.includes('row level security')) return true;
+  if (msg.includes('violates') && msg.includes('policy')) return true;
+  return false;
+}
+
+function mostraPopupPausa() {
+  // Apri modale; se l'utente non ha la modale (versione vecchia), usa alert
+  const m = document.getElementById('modal-pausa-blocco');
+  if (m) {
+    m.classList.remove('hidden');
+  } else {
+    alert('Operazione non possibile.\n\nIl tuo abbonamento è in pausa.\nPer registrare temperature riattivalo da Setup → Anagrafica → Stato abbonamento.');
+  }
+}
+
+function chiudiPopupPausa() {
+  const m = document.getElementById('modal-pausa-blocco');
+  if (m) m.classList.add('hidden');
+}
+
+function vaiAStatoAbbonamento() {
+  chiudiPopupPausa();
+  // Vai al tab Setup
+  const tabSetup = document.querySelector('[onclick*="setup"]');
+  if (tabSetup) tabSetup.click();
+  // Apri pillola Anagrafica
+  setTimeout(function() {
+    const pillAnagrafica = document.querySelectorAll('.setup-pill')[1];
+    if (pillAnagrafica) pillAnagrafica.click();
+    // Scroll alla card abbonamento
+    setTimeout(function() {
+      const card = document.getElementById('abbonamento-card');
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 200);
+  }, 150);
+}
+
 function renderDevices() {
   const list = document.getElementById('device-list');
   if (!list) return;
@@ -728,6 +775,18 @@ async function sendData(name, type, area) {
       }), 600);
     } catch(e) {
       console.error('[sendData]', e);
+      // Se è un errore RLS dovuto a pausa abbonamento, mostra popup specifico
+      if (isErroreAccountInPausa(e)) {
+        // rimuovo dal cloudData locale (non è stato salvato)
+        cloudData.pop();
+        delete lastTemps[name];
+        localStorage.setItem('h_lasttemps', JSON.stringify(lastTemps));
+        mostraPopupPausa();
+        btn.disabled = false;
+        btn.innerHTML = '<svg viewBox="0 0 16 16"><path d="M2 8l12-6-6 12V9L2 8z"/></svg>';
+        renderDevices(); buildDash(); updateDashBadge();
+        return;
+      }
       queueEntry({ kind:'temperature', payload: entry });
       showToast('Errore cloud — salvato in coda','warning');
     }
@@ -853,6 +912,10 @@ async function saveAction() {
       if (error) throw error;
     } catch(e) {
       console.error('[saveAction]', e);
+      if (isErroreAccountInPausa(e)) {
+        mostraPopupPausa();
+        return;
+      }
       queueEntry({ kind:'azione', payload });
     }
   } else {
@@ -1076,6 +1139,13 @@ async function saveFirma() {
       if (error) throw error;
     } catch(e) {
       console.error('[saveFirma]', e);
+      if (isErroreAccountInPausa(e)) {
+        // rimuovo dal cache locale (non è stata salvata)
+        cloudFirme.pop();
+        localStorage.setItem('h_firme', JSON.stringify(cloudFirme));
+        mostraPopupPausa();
+        return;
+      }
       queueEntry({ kind:'firma', payload });
     }
   } else {

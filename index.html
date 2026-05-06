@@ -151,6 +151,31 @@
   </div>
 </div>
 
+<!-- MODALE BLOCCO ACCOUNT IN PAUSA -->
+<div id="modal-pausa-blocco" class="modal-overlay hidden">
+  <div class="modal" style="max-width:380px;border-radius:14px;align-self:center;">
+    <div style="text-align:center;padding:8px 0 4px;">
+      <div style="font-size:48px;margin-bottom:8px;">⏸</div>
+      <h3 style="font-size:18px;font-weight:800;color:#c2410c;margin-bottom:6px;">Operazione non possibile</h3>
+      <p style="font-size:14px;color:var(--text);line-height:1.5;margin-bottom:6px;font-weight:600;">
+        Il tuo abbonamento è in pausa.
+      </p>
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;">
+        Durante la pausa puoi consultare i tuoi dati ma non puoi inserirne di nuovi.
+        Riattiva l'abbonamento per riprendere a registrare le temperature.
+      </p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="vaiAStatoAbbonamento()" style="width:100%;padding:13px;background:linear-gradient(135deg,#1a7a4a 0%,#16a34a 100%);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;box-shadow:0 4px 12px rgba(22,163,74,.3);">
+        ▶ Riattiva ora
+      </button>
+      <button onclick="chiudiPopupPausa()" style="width:100%;padding:11px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:8px;font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;">
+        Ho capito, chiudi
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- DASHBOARD -->
 <div id="screen-dash" class="screen active">
   <div class="stat-grid">
