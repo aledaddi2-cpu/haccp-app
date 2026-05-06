@@ -1517,7 +1517,7 @@ async function deleteDevice(i) {
     const { error } = await sb.from('apparecchi').delete().eq('id', dev.id);
     if (error) throw error;
     await pullApparecchi();
-    renderSetup(); renderDevices();
+    renderSetup(); renderZoneSetup(); renderDevices();
     showToast(`${dev.name} rimosso`,'success');
   } catch(e) { showToast('Errore: '+e.message,'error'); }
 }
