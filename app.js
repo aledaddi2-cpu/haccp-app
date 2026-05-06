@@ -1201,7 +1201,7 @@ function openModal(entry) {
   });
   document.getElementById('modal-overlay').classList.remove('hidden');
 }
-function closeModalBg(e) { if(e.target.id==='modal-overlay') closeModal(); }
+function closeModalBg(e) { /* Modal ASL bloccante: si chiude solo dopo la compilazione */ }
 function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); modalEntry=null; }
 
 async function saveAction() {
