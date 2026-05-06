@@ -349,6 +349,16 @@ function openEditModal(userId) {
   document.getElementById('ef-cmb').value   = c.callmebot_apikey || '';
   document.getElementById('ef-piano').value = c.piano_abbonamento || '14.99_manuale';
   document.getElementById('ef-note').value  = c.note_admin || '';
+  // Data scadenza in formato YYYY-MM-DD per <input type="date">
+  if (c.data_scadenza) {
+    const d = new Date(c.data_scadenza);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    document.getElementById('ef-scadenza').value = `${y}-${m}-${day}`;
+  } else {
+    document.getElementById('ef-scadenza').value = '';
+  }
   document.getElementById('modal-edit').classList.remove('hidden');
 }
 
@@ -362,6 +372,12 @@ async function doSaveEdit() {
     piano_abbonamento: document.getElementById('ef-piano').value,
     note_admin:        document.getElementById('ef-note').value,
   };
+  // Data scadenza opzionale: includila solo se valorizzata
+  const scadStr = document.getElementById('ef-scadenza').value;
+  if (scadStr) {
+    // Imposto fine giornata 23:59:59 per coerenza con i rinnovi
+    payload.data_scadenza = new Date(scadStr + 'T23:59:59').toISOString();
+  }
   try {
     await callAdminApi('update_client', payload);
     closeModal('modal-edit');
