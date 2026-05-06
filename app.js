@@ -384,14 +384,25 @@ async function pullZone() {
     .select('id, nome, emoji, ordine')
     .eq('azienda_id', currentAziendaId)
     .order('ordine').order('nome');
-  // Se la tabella non esiste o è vuota, usa le zone di default per retrocompatibilità
-  if (error || !data || data.length === 0) {
+  if (error) {
+    zone = ZONE_DEFAULT;
+  } else if (!data || data.length === 0) {
+    // Tabella vuota: cliente nuovo, usa i default
     zone = ZONE_DEFAULT;
   } else {
-    zone = data;
+    // Tabella con dati: usa quelle del db
+    // Retrocompatibilità: se esistono apparecchi con area default (Cucina/Bar/Ristorante)
+    // ma quella zona non è nel db, aggiungila virtualmente in cima
+    const nomiDb = data.map(z => z.nome.toLowerCase());
+    const missing = ZONE_DEFAULT.filter(d => {
+      const hasApparecchio = config.some(c => (c.area||'').toLowerCase() === d.nome.toLowerCase());
+      return hasApparecchio && !nomiDb.includes(d.nome.toLowerCase());
+    });
+    zone = [...missing, ...data];
   }
   // Imposta currentArea alla prima zona disponibile se non già valida
-  if (!zone.find(z => z.nome === currentArea)) {
+  const areaValida = zone.find(z => z.nome.toLowerCase() === (currentArea||'').toLowerCase());
+  if (!areaValida) {
     currentArea = zone[0]?.nome || null;
   }
 }
