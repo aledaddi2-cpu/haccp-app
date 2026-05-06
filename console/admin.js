@@ -170,9 +170,7 @@ function renderTable() {
   }
 
   body.innerHTML = filtered.map(c => {
-    const piano    = c.piano_abbonamento === '24.99_automatico'
-      ? '<span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-[11px] font-bold">24.99 auto</span>'
-      : '<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[11px] font-bold">14.99 manuale</span>';
+    const piano    = pianoBadge(c.piano_abbonamento);
     const stBadge  = c.stato === 'attivo'      ? '<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[11px] font-bold">attivo</span>'
                    : c.stato === 'in_scadenza' ? '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[11px] font-bold">in scadenza</span>'
                                                : '<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-[11px] font-bold">scaduto</span>';
@@ -372,7 +370,7 @@ async function doSaveEdit() {
     telefono_whatsapp: document.getElementById('ef-tel').value.trim(),
     callmebot_apikey:  document.getElementById('ef-cmb').value.trim(),
     piano_abbonamento: document.getElementById('ef-piano').value,
-    wa_notif_tipo:     document.getElementById('ef-piano').value === '24.99_automatico'
+    wa_notif_tipo:     pianoHasWA(document.getElementById('ef-piano').value)
                          ? document.getElementById('ef-wa-notif-tipo').value
                          : 'entrambi',
     note_admin:        document.getElementById('ef-note').value,
@@ -756,9 +754,32 @@ async function doRestore(id) {
 init();
 
 // ── Toggle visibilità blocco tipo notifica WA ────────────────────────────────
+// ── Helper: quali piani includono WhatsApp ────────────────────────────────────
+const PIANI_WA = ['19.99_esp32', '24.99_esp32_plus'];
+function pianoHasWA(val) { return PIANI_WA.includes(val); }
+
+function pianoBadge(val) {
+  const map = {
+    '14.99_manuale':    ['bg-blue-100 text-blue-800',   '14.99 manuale'],
+    '19.99_esp32':      ['bg-green-100 text-green-800',  '19.99 ESP32'],
+    '24.99_esp32_plus': ['bg-purple-100 text-purple-800','24.99 ESP32+'],
+  };
+  const [cls, label] = map[val] || ['bg-slate-100 text-slate-600', val || '—'];
+  return `<span class="${cls} px-2 py-0.5 rounded-full text-[11px] font-bold">${label}</span>`;
+}
+
+// ── Toggle visibilità blocco tipo notifica WA ─────────────────────────────────
 function toggleWaNotifTipo() {
   const piano = document.getElementById('ef-piano');
   const block = document.getElementById('ef-wa-tipo-block');
   if (!piano || !block) return;
-  block.style.display = piano.value === '24.99_automatico' ? '' : 'none';
+  block.style.display = pianoHasWA(piano.value) ? '' : 'none';
+  // Se 24.99 forza entrambi come default, se 19.99 forza solo_messaggio come default
+  const sel = document.getElementById('ef-wa-notif-tipo');
+  if (sel && piano.value === '19.99_esp32' && sel.value === 'entrambi') {
+    sel.value = 'solo_messaggio';
+  }
+  if (sel && piano.value === '24.99_esp32_plus' && sel.value === 'solo_messaggio') {
+    sel.value = 'entrambi';
+  }
 }
