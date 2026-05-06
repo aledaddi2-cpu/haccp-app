@@ -664,11 +664,11 @@ function applyConfig() {
     const el = document.getElementById(id);
     if (el) el.value = fields[id] || '';
   }
-  // Mostra la sezione WhatsApp solo per il piano 24.99 (automatico)
+  // Mostra la sezione WhatsApp per i piani 19.99 e 24.99
   const waBlock = document.getElementById('wa-block');
   if (waBlock) {
-    const isAutomatico = (aziendaCfg.piano_abbonamento || '') === '24.99_automatico';
-    waBlock.style.display = isAutomatico ? '' : 'none';
+    const pianoHasWA = ['19.99_esp32','24.99_esp32_plus'].includes(aziendaCfg.piano_abbonamento || '');
+    waBlock.style.display = pianoHasWA ? '' : 'none';
   }
   // Mostra il tipo di notifica impostato dal superadmin (sola lettura)
   const waLabelEl = document.getElementById('wa-notif-tipo-label');
@@ -799,7 +799,12 @@ async function loadStatoAbbonamento() {
     }
 
     const pausePossibili = !inPausa && pauseUsate < 2 && entroAnno && scad > ora;
-    const pianoLabel = data.piano_abbonamento === '24.99_automatico' ? '24.99€ Automatico' : '14.99€ Manuale';
+    const _pianoMap = {
+      '14.99_manuale':    '14.99€ — Manuale',
+      '19.99_esp32':      '19.99€ — ESP32 + WA Messaggio',
+      '24.99_esp32_plus': '24.99€ — ESP32 + WA Msg + Chiamata',
+    };
+    const pianoLabel = _pianoMap[data.piano_abbonamento] || data.piano_abbonamento || '—';
 
     let html = '';
     html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">`;
@@ -1021,7 +1026,10 @@ async function sendVoiceAlert(apparecchio, temp, area) {
                  + `&apikey=${encodeURIComponent(apikey)}`
                  + `&text=${encodeURIComponent(testo)}`
                  + `&lang=it-IT`;
-  const tipo = (aziendaCfg.wa_notif_tipo || 'entrambi');
+  // Guard: il piano 19.99 non può fare chiamate vocali
+  const _piano = aziendaCfg.piano_abbonamento || '';
+  let tipo = aziendaCfg.wa_notif_tipo || 'entrambi';
+  if (_piano === '19.99_esp32' && tipo !== 'solo_messaggio') tipo = 'solo_messaggio';
   try {
     if (tipo === 'entrambi' || tipo === 'solo_messaggio') {
       await fetch(urlMsg, { mode: 'no-cors' });
