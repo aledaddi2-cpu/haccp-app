@@ -495,7 +495,9 @@ function applyConfig() {
     'cfg-email':        aziendaCfg.email,
     'cfg-responsabile': aziendaCfg.responsabile,
     'cfg-regsanitaria': aziendaCfg.regsanitaria,
-    'cfg-dataverifica': aziendaCfg.dataverifica
+    'cfg-dataverifica': aziendaCfg.dataverifica,
+    'cfg-wa-telefono':  aziendaCfg.telefono_whatsapp,
+    'cfg-wa-apikey':    aziendaCfg.callmebot_apikey,
   };
   for (let id in fields) {
     const el = document.getElementById(id);
@@ -813,6 +815,43 @@ function checkWarn(name, type, el) {
 // ═══════════════════════════════════════════════════════════════
 // SEND TEMPERATURA
 // ═══════════════════════════════════════════════════════════════
+// ─── NOTIFICA VOCALE CALLMEBOT ───────────────────────────────────────────────
+async function sendVoiceAlert(apparecchio, temp, area) {
+  const tel    = (aziendaCfg.telefono_whatsapp || '').trim();
+  const apikey = (aziendaCfg.callmebot_apikey  || '').trim();
+  if (!tel || !apikey) return;
+
+  const azienda = aziendaCfg.azienda || 'Azienda';
+  const zona    = area ? ` zona ${area}` : '';
+  const testo   = `Attenzione! Anomalia di temperatura rilevata da ${azienda}.`
+                + ` Apparecchio: ${apparecchio}${zona}. Temperatura: ${temp} gradi.`
+                + ` Verificare immediatamente.`;
+
+  // 1. Messaggio WhatsApp testuale
+  const urlMsg = `https://api.callmebot.com/whatsapp.php`
+               + `?phone=${encodeURIComponent(tel)}`
+               + `&apikey=${encodeURIComponent(apikey)}`
+               + `&text=${encodeURIComponent(testo)}`;
+  // 2. Chiamata vocale (parte 2 secondi dopo per non sovrapporsi)
+  const urlVoice = `https://api.callmebot.com/whatsapp/voicecall.php`
+                 + `?phone=${encodeURIComponent(tel)}`
+                 + `&apikey=${encodeURIComponent(apikey)}`
+                 + `&text=${encodeURIComponent(testo)}`
+                 + `&lang=it-IT`;
+  try {
+    await fetch(urlMsg,   { mode: 'no-cors' });
+    console.log('[Alert] messaggio WhatsApp inviato a', tel);
+    setTimeout(() => {
+      fetch(urlVoice, { mode: 'no-cors' })
+        .then(() => console.log('[Alert] chiamata vocale inviata a', tel))
+        .catch(e  => console.warn('[Alert] errore chiamata vocale:', e));
+    }, 2000);
+  } catch (e) {
+    console.warn('[Alert] errore invio:', e);
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function sendData(name, type, area) {
   const id  = name.replace(/[^a-z0-9]/gi,'_');
   const el  = document.getElementById('inp-'+id);
@@ -850,9 +889,12 @@ async function sendData(name, type, area) {
       showToast(`✓ ${name} · ${val}° salvato`,'success');
       el.value=''; el.classList.remove('warn');
       const w = document.getElementById('tw-'+id); if(w) w.classList.remove('on');
-      if (status==='ERR') setTimeout(()=>openModal({
-        name, temp: String(val), date: dataIT, time: oraIT, area, type
-      }), 600);
+      if (status==='ERR') {
+        sendVoiceAlert(name, val, area); // chiamata vocale immediata
+        setTimeout(()=>openModal({
+          name, temp: String(val), date: dataIT, time: oraIT, area, type
+        }), 600);
+      }
     } catch(e) {
       console.error('[sendData]', e);
       // Se è un errore RLS dovuto a pausa abbonamento, mostra popup specifico
@@ -1360,14 +1402,16 @@ async function deleteOperatore(i) {
 // SETUP — DATI AZIENDA
 // ═══════════════════════════════════════════════════════════════
 function saveCfgLocal() {
-  aziendaCfg.azienda      = document.getElementById('cfg-azienda').value;
-  aziendaCfg.indirizzo    = document.getElementById('cfg-indirizzo').value;
-  aziendaCfg.piva         = document.getElementById('cfg-piva').value;
-  aziendaCfg.telefono     = document.getElementById('cfg-telefono').value;
-  aziendaCfg.email        = document.getElementById('cfg-email').value;
-  aziendaCfg.responsabile = document.getElementById('cfg-responsabile').value;
-  aziendaCfg.regsanitaria = document.getElementById('cfg-regsanitaria').value;
-  aziendaCfg.dataverifica = document.getElementById('cfg-dataverifica').value;
+  aziendaCfg.azienda             = document.getElementById('cfg-azienda').value;
+  aziendaCfg.indirizzo           = document.getElementById('cfg-indirizzo').value;
+  aziendaCfg.piva                = document.getElementById('cfg-piva').value;
+  aziendaCfg.telefono            = document.getElementById('cfg-telefono').value;
+  aziendaCfg.email               = document.getElementById('cfg-email').value;
+  aziendaCfg.responsabile        = document.getElementById('cfg-responsabile').value;
+  aziendaCfg.regsanitaria        = document.getElementById('cfg-regsanitaria').value;
+  aziendaCfg.dataverifica        = document.getElementById('cfg-dataverifica').value;
+  aziendaCfg.telefono_whatsapp   = document.getElementById('cfg-wa-telefono').value;
+  aziendaCfg.callmebot_apikey    = document.getElementById('cfg-wa-apikey').value;
   localStorage.setItem('h_azienda', JSON.stringify(aziendaCfg));
 }
 
@@ -1378,13 +1422,15 @@ async function saveCfgCloud() {
   try {
     const payload = {
       azienda:      aziendaCfg.azienda      || '',
-      indirizzo:    aziendaCfg.indirizzo    || '',
-      piva:         aziendaCfg.piva         || '',
-      telefono:     aziendaCfg.telefono     || '',
-      email:        aziendaCfg.email        || '',
-      responsabile: aziendaCfg.responsabile || '',
-      regsanitaria: aziendaCfg.regsanitaria || '',
-      dataverifica: aziendaCfg.dataverifica || null
+      indirizzo:           aziendaCfg.indirizzo          || '',
+      piva:                aziendaCfg.piva               || '',
+      telefono:            aziendaCfg.telefono           || '',
+      email:               aziendaCfg.email              || '',
+      responsabile:        aziendaCfg.responsabile       || '',
+      regsanitaria:        aziendaCfg.regsanitaria       || '',
+      dataverifica:        aziendaCfg.dataverifica       || null,
+      telefono_whatsapp:   aziendaCfg.telefono_whatsapp  || '',
+      callmebot_apikey:    aziendaCfg.callmebot_apikey   || ''
     };
     const { error } = await sb.from('aziende').update(payload).eq('id', currentAziendaId);
     if (error) throw error;
