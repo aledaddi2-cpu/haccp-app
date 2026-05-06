@@ -375,18 +375,23 @@ async function doSaveEdit() {
                          : 'entrambi',
     note_admin:        document.getElementById('ef-note').value,
   };
-  // Data scadenza opzionale: includila solo se valorizzata
+  // Data scadenza: sempre inclusa nel payload (null se non valorizzata)
   const scadStr = document.getElementById('ef-scadenza').value;
   if (scadStr) {
     // Imposto fine giornata 23:59:59 per coerenza con i rinnovi
     payload.data_scadenza = new Date(scadStr + 'T23:59:59').toISOString();
+  } else {
+    payload.data_scadenza = null;
   }
   try {
     await callAdminApi('update_client', payload);
     closeModal('modal-edit');
     showToast('✓ Modifiche salvate', 'success');
     await loadClients();
-  } catch(e) { showToast('Errore: ' + e.message, 'error'); }
+  } catch(e) {
+    console.error('[doSaveEdit] payload:', payload, 'errore:', e);
+    showToast('Errore: ' + e.message, 'error');
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
