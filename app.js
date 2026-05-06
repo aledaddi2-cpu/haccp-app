@@ -55,6 +55,17 @@ function isAdmin() { return currentRole === 'admin' || currentRole === 'superadm
 // ═══════════════════════════════════════════════════════════════
 async function init() {
   setLoadingMsg('Verifica sessione...');
+
+  // Intercetta arrivo da link di reset password.
+  // Supabase mette nell'URL fragment (#) un access_token + type=recovery.
+  // Esempio: https://.../app/?reset=1#access_token=XXX&type=recovery&...
+  const isResetFlow = checkResetPasswordFlow();
+  if (isResetFlow) {
+    hideLoading();
+    document.getElementById('reset-screen').style.display = 'flex';
+    return;  // non procedere con il flow normale
+  }
+
   const { data: { session } } = await sb.auth.getSession();
 
   if (session) {
@@ -170,9 +181,75 @@ async function doRecoverPassword() {
     return;
   }
   if (!confirm(`Inviare email di recupero password a ${email}?`)) return;
-  const { error } = await sb.auth.resetPasswordForEmail(email);
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname + '?reset=1'
+  });
   if (error) showToast('Errore: ' + error.message, 'error');
   else showToast('Email di recupero inviata a ' + email, 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FLOW RESET PASSWORD — quando l'utente arriva dal link email
+// ═══════════════════════════════════════════════════════════════
+function checkResetPasswordFlow() {
+  // Supabase Auth con resetPasswordForEmail mette i parametri nell'URL fragment:
+  //   https://miosito.com/?reset=1#access_token=XXX&type=recovery&expires_in=3600&...
+  // Il client supabase-js, alla creazione, processa automaticamente il fragment
+  // e crea una sessione "temporanea" che scade dopo 1h o quando viene
+  // usata per cambiare la password.
+  // Ci basta riconoscere che siamo nel flow per via di:
+  //   1) ?reset=1 nella query string
+  //   2) #type=recovery nel fragment
+  const urlParams = new URLSearchParams(window.location.search);
+  const fragment  = window.location.hash || '';
+  const isReset = urlParams.get('reset') === '1' ||
+                  fragment.includes('type=recovery');
+  return isReset;
+}
+
+async function doResetPassword() {
+  const pwd  = document.getElementById('reset-pwd').value;
+  const pwd2 = document.getElementById('reset-pwd2').value;
+  const err  = document.getElementById('reset-err');
+  err.textContent = '';
+
+  if (pwd.length < 6) {
+    err.textContent = 'La password deve avere almeno 6 caratteri';
+    return;
+  }
+  if (pwd !== pwd2) {
+    err.textContent = 'Le password non corrispondono';
+    return;
+  }
+
+  const btn = document.getElementById('reset-btn');
+  btn.disabled = true;
+  btn.textContent = 'Salvataggio...';
+
+  try {
+    // sb.auth.updateUser cambia la password dell'utente attualmente loggato
+    // (la "sessione di recovery" creata automaticamente dal token nel fragment)
+    const { error } = await sb.auth.updateUser({ password: pwd });
+    if (error) throw error;
+
+    showToast('✓ Password aggiornata con successo!', 'success');
+
+    // Pulisci URL e fai logout per forzare nuovo login con la nuova password
+    setTimeout(async function() {
+      await sb.auth.signOut();
+      window.location.href = window.location.origin + window.location.pathname;
+    }, 1500);
+  } catch(e) {
+    console.error('[doResetPassword]', e);
+    err.textContent = 'Errore: ' + e.message + '. Il link potrebbe essere scaduto, richiedi un nuovo reset.';
+    btn.disabled = false;
+    btn.textContent = 'Salva nuova password →';
+  }
+}
+
+function annullaReset() {
+  // L'utente ha cliccato "annulla": pulisci URL e torna al login
+  window.location.href = window.location.origin + window.location.pathname;
 }
 
 // ═══════════════════════════════════════════════════════════════
