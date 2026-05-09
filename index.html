@@ -143,22 +143,56 @@
   </div>
 </div>
 
-<!-- BANNER STAMPA SETTIMANALE -->
-<div id="stampa-banner" style="display:none;background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;padding:13px 16px;border-radius:10px;margin:0 0 14px;box-shadow:0 4px 12px rgba(217,119,6,.25);">
+<!-- BANNER AVVISO SETTIMANALE (skippabile) -->
+<div id="banner-settimanale" style="display:none;background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;padding:13px 16px;border-radius:10px;margin:0 0 14px;box-shadow:0 4px 12px rgba(217,119,6,.25);">
   <div style="display:flex;align-items:flex-start;gap:10px;">
     <div style="font-size:22px;flex-shrink:0;">🖨️</div>
     <div style="flex:1;">
-      <div style="font-weight:700;font-size:14px;margin-bottom:2px;">Ricordati di stampare e firmare il registro</div>
-      <div id="stampa-banner-sub" style="font-size:11px;opacity:.92;line-height:1.4;">Sono passati 7 giorni dall'ultima stampa archiviata. Genera il PDF e archivialo cartaceo come da normativa HACCP.</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:2px;">Consiglio della settimana</div>
+      <div id="banner-settimanale-sub" style="font-size:11px;opacity:.92;line-height:1.4;">Stampa e firma il registro periodicamente per essere sempre in regola con il Reg. CE 852/2004.</div>
     </div>
   </div>
   <div style="display:flex;gap:7px;margin-top:10px;">
     <button onclick="apriReportPerStampa()" style="flex:2;padding:9px;background:#fff;color:#d97706;border:none;border-radius:6px;font-weight:700;font-size:12px;font-family:inherit;cursor:pointer;">📄 Genera ora</button>
-    <button onclick="posticipaBanner()" style="flex:1;padding:9px;background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:6px;font-weight:600;font-size:12px;font-family:inherit;cursor:pointer;">Tra 24h</button>
+    <button onclick="chiudiBannerSettimanale()" style="flex:1;padding:9px;background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:6px;font-weight:600;font-size:12px;font-family:inherit;cursor:pointer;">✕ Chiudi</button>
   </div>
 </div>
 
-<!-- MODALE CONFERMA STAMPA -->
+<!-- BANNER ULTIMO GIORNO DEL MESE (non skippabile) -->
+<div id="stampa-banner" style="display:none;background:linear-gradient(135deg,#ea580c 0%,#c2410c 100%);color:#fff;padding:13px 16px;border-radius:10px;margin:0 0 14px;box-shadow:0 4px 12px rgba(194,65,12,.35);">
+  <div style="display:flex;align-items:flex-start;gap:10px;">
+    <div style="font-size:22px;flex-shrink:0;">⚠️</div>
+    <div style="flex:1;">
+      <div style="font-weight:700;font-size:14px;margin-bottom:2px;">Ultimo giorno del mese — azione obbligatoria</div>
+      <div id="stampa-banner-sub" style="font-size:11px;opacity:.92;line-height:1.4;">Da domani l'app sarà bloccata finché non scarichi il registro mensile firmato.</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:7px;margin-top:10px;">
+    <button onclick="apriReportPerStampa()" style="flex:1;padding:9px;background:#fff;color:#c2410c;border:none;border-radius:6px;font-weight:700;font-size:12px;font-family:inherit;cursor:pointer;">📥 Scarica ora</button>
+  </div>
+</div>
+
+<!-- MODALE BLOCCO MENSILE (non chiudibile senza download PDF) -->
+<div id="modal-blocco-mensile" class="modal-overlay hidden" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);">
+  <div class="modal" style="max-width:400px;border-radius:16px;align-self:center;border-top:5px solid #dc2626;">
+    <div style="text-align:center;padding:8px 0 4px;">
+      <div style="font-size:52px;margin-bottom:10px;">🔒</div>
+      <h3 style="font-size:19px;font-weight:800;color:#dc2626;margin-bottom:6px;">Registro mensile obbligatorio</h3>
+      <p id="blocco-mese-label" style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:6px;font-weight:600;"></p>
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:20px;">
+        Per continuare a usare l'app devi scaricare il PDF del registro mensile e conservarlo firmato dal responsabile, come previsto dal Reg. CE 852/2004.
+      </p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button onclick="apriReportPerStampa()" style="width:100%;padding:14px;background:linear-gradient(135deg,#dc2626 0%,#b91c1c 100%);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:15px;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(220,38,38,.35);">
+        📥 Scarica il registro — sblocca l'app
+      </button>
+    </div>
+    <p style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:14px;opacity:.7;">Non puoi chiudere questa finestra finché non hai scaricato il PDF.</p>
+  </div>
+</div>
+
+<!-- MODALE CONFERMA STAMPA (dopo download PDF in regime normale) -->
 <div id="modal-conferma-stampa" class="modal-overlay hidden">
   <div class="modal" style="max-width:380px;border-radius:14px;align-self:center;">
     <div style="text-align:center;padding:8px 0 4px;">
@@ -166,7 +200,6 @@
       <h3 style="font-size:18px;font-weight:800;color:var(--navy);margin-bottom:6px;">Hai stampato e firmato?</h3>
       <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;">
         Conferma di aver stampato il PDF, applicato firma e timbro del responsabile, e archiviato il documento cartaceo.
-        Il prossimo promemoria comparirà fra 7 giorni.
       </p>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
@@ -466,5 +499,15 @@
 
 
     <script src="app.js"></script>
+    <script>
+      // Aggiorna label modale blocco con il mese corretto
+      document.addEventListener('DOMContentLoaded', function() {
+        const lbl = document.getElementById('blocco-mese-label');
+        if (lbl) {
+          const prev = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+          lbl.textContent = 'Il registro di ' + prev.toLocaleString('it-IT', { month: 'long', year: 'numeric' }) + ' non è ancora stato scaricato.';
+        }
+      });
+    </script>
 </body>
 </html>

@@ -81,6 +81,7 @@ async function init() {
     renderAll();
     await checkTermsAndShow();
     setTimeout(checkStampaBanner, 2000);
+    registraServiceWorkerNotifiche();
   } else {
     hideLoading();
     setupMonthFilter();
@@ -1900,11 +1901,15 @@ function exportPDF() {
   }
 
   const nomefile = 'HACCP_' + (aziendaCfg.azienda||'registro').replace(/[^a-zA-Z0-9]/g,'_') + '_' + mName.replace(/\s/g,'_') + '.pdf';
-  doc.save(nomefile);
-  showToast('PDF ufficiale generato', 'success');
-  // Apre la modale di conferma "Hai stampato e firmato?" solo se è
-  // settimana di promemoria. Funzione no-op se non è il momento.
-  setTimeout(mostraConfermaStampa, 600);
+
+  // Se blocco mensile attivo, il download sblocca l'app
+  if (isBloccoStampa()) {
+    scaricaPDFEConferma(doc, nomefile);
+  } else {
+    doc.save(nomefile);
+    showToast('PDF ufficiale generato', 'success');
+    setTimeout(mostraConfermaStampa, 600);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1929,116 +1934,182 @@ function updateDate() {
 //   nella modale che appare DOPO la generazione del PDF (non automaticamente)
 // • "Tra 24h" rimanda di 1 giorno (non resetta il timer settimanale)
 // ═══════════════════════════════════════════════════════════════
+// PROMEMORIA E BLOCCO STAMPA MENSILE
+// ───────────────────────────────────────────────────────────────
+// Logica:
+// • Ultimo giorno del mese: notifica push (anche con app chiusa).
+// • Dal 1° del mese successivo: modale bloccante non chiudibile finché
+//   il PDF del mese precedente non viene SCARICATO sul dispositivo.
+// • Sblocco: solo quando il PDF viene scaricato in modalità blocco.
+// • Primi 30 giorni di account: nessun blocco.
+// ═══════════════════════════════════════════════════════════════
 
-const SETTE_GIORNI_MS = 7 * 24 * 3600 * 1000;
-const UN_GIORNO_MS    = 24 * 3600 * 1000;
+const UN_GIORNO_MS = 24 * 3600 * 1000;
 
+function chiaveConfermaStampa(anno, mese) {
+  return 'h_stampa_confermata_' + anno + '_' + String(mese).padStart(2, '0');
+}
+function mesePrecedenteConfermato() {
+  const prev = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+  return !!localStorage.getItem(chiaveConfermaStampa(prev.getFullYear(), prev.getMonth() + 1));
+}
+function segnaStampaConfermata(anno, mese) {
+  localStorage.setItem(chiaveConfermaStampa(anno, mese), String(Date.now()));
+}
+function isBloccoStampa() {
+  if (currentRole === 'superadmin') return false;
+  let i = parseInt(localStorage.getItem('h_data_inizio_account') || '0');
+  if (!i) { i = Date.now(); localStorage.setItem('h_data_inizio_account', String(i)); }
+  if ((Date.now() - i) < 30 * UN_GIORNO_MS) return false;
+  return !mesePrecedenteConfermato();
+}
+function mostraBloccoMensile() {
+  const m = document.getElementById('modal-blocco-mensile');
+  if (m) m.classList.remove('hidden');
+}
 function checkStampaBanner() {
-  const banner = document.getElementById('stampa-banner');
-  if (!banner) return;
-
-  // Il superadmin non vede il promemoria stampa (è il fornitore del servizio)
-  if (currentRole === 'superadmin') { banner.style.display = 'none'; return; }
-
-  const ora = Date.now();
-
-  // 1. Data di "inizio account": registrata al primo accesso e poi stabile.
-  // È in localStorage, quindi per dispositivo. In caso di cambio dispositivo
-  // l'utente vedrà il banner una volta extra, ma non è un problema critico.
-  let inizioAccount = parseInt(localStorage.getItem('h_data_inizio_account') || '0');
-  if (!inizioAccount) {
-    inizioAccount = ora;
-    localStorage.setItem('h_data_inizio_account', String(inizioAccount));
+  if (currentRole === 'superadmin') {
+    ['stampa-banner','banner-settimanale'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
+    return;
   }
+  let i = parseInt(localStorage.getItem('h_data_inizio_account') || '0');
+  if (!i) { i = Date.now(); localStorage.setItem('h_data_inizio_account', String(i)); }
+  const giorniDaInizio = (Date.now() - i) / UN_GIORNO_MS;
 
-  // 2. Calcola se è il momento di mostrare il banner
-  const giorniDaInizio = (ora - inizioAccount) / UN_GIORNO_MS;
-  if (giorniDaInizio < 7) {
-    banner.style.display = 'none';
-    return;  // primi 7 giorni di vita account: niente promemoria
-  }
-
-  // Rimando "Tra 24h" cliccato di recente?
-  const rimando = parseInt(localStorage.getItem('h_stampa_rimando') || '0');
-  if (rimando > ora) { banner.style.display = 'none'; return; }
-
-  // Ultima stampa CONFERMATA: se nelle ultime 7gg, niente banner
-  const ultimaConferma = parseInt(localStorage.getItem('h_stampa_confermata') || '0');
-  const giorniDaConferma = (ora - ultimaConferma) / UN_GIORNO_MS;
-  if (ultimaConferma > 0 && giorniDaConferma < 7) {
-    banner.style.display = 'none';
+  // Se il mese precedente non è confermato → blocco modale (priorità massima)
+  if (giorniDaInizio >= 30 && !mesePrecedenteConfermato()) {
+    setTimeout(mostraBloccoMensile, 800);
+    ['stampa-banner','banner-settimanale'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
     return;
   }
 
-  // Mostra il banner con messaggio dinamico
-  const sub = document.getElementById('stampa-banner-sub');
-  if (sub) {
-    if (ultimaConferma === 0) {
-      const giorni = Math.floor(giorniDaInizio);
-      sub.textContent = `Sono passati ${giorni} giorni dall'attivazione dell'account. È il momento di generare e archiviare il primo registro mensile.`;
+  const ora = new Date();
+  const ultimoGiorno = new Date(ora.getFullYear(), ora.getMonth() + 1, 0).getDate();
+
+  // ── BANNER ARANCIONE — ultimo giorno del mese, non skippabile ──
+  const bannerFine = document.getElementById('stampa-banner');
+  if (bannerFine) {
+    if (giorniDaInizio >= 30 && ora.getDate() === ultimoGiorno) {
+      const lbl = ora.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
+      const sub = document.getElementById('stampa-banner-sub');
+      if (sub) sub.textContent = "Oggi è l'ultimo giorno di " + lbl + ". Da domani l'app sarà bloccata finché non scarichi il registro mensile firmato.";
+      bannerFine.style.display = 'block';
+      // Quando c'è il banner obbligatorio, nascondi quello settimanale
+      const bsett = document.getElementById('banner-settimanale');
+      if (bsett) bsett.style.display = 'none';
+      return;
     } else {
-      const giorni = Math.floor(giorniDaConferma);
-      sub.textContent = `Sono passati ${giorni} giorni dall'ultima stampa archiviata. Genera il PDF e conserva il documento firmato come da normativa HACCP.`;
+      bannerFine.style.display = 'none';
     }
   }
-  banner.style.display = 'block';
+
+  // ── BANNER GIALLO — avviso settimanale skippabile ──
+  if (giorniDaInizio < 14) return; // prime 2 settimane: silenzio totale
+  const bsett = document.getElementById('banner-settimanale');
+  if (!bsett) return;
+  // Mostra se non è stato chiuso negli ultimi 7 giorni
+  const chiuso = parseInt(localStorage.getItem('h_banner_sett_chiuso') || '0');
+  const giorniDaChiusura = (Date.now() - chiuso) / UN_GIORNO_MS;
+  if (chiuso === 0 || giorniDaChiusura >= 7) {
+    const sub = document.getElementById('banner-settimanale-sub');
+    if (sub) {
+      const ultimaConferma = parseInt(localStorage.getItem('h_stampa_settimanale_ultima') || '0');
+      if (ultimaConferma === 0) {
+        sub.textContent = 'Non hai ancora stampato nessun registro. Ti consigliamo di farlo regolarmente.';
+      } else {
+        const giorni = Math.floor((Date.now() - ultimaConferma) / UN_GIORNO_MS);
+        sub.textContent = 'Sono passati ' + giorni + " giorni dall'ultima stampa. Tieniti in regola con il Reg. CE 852/2004.";
+      }
+    }
+    bsett.style.display = 'block';
+  } else {
+    bsett.style.display = 'none';
+  }
 }
 
-// "Tra 24h" — rimanda il banner di un giorno (non resetta il ciclo settimanale)
-function posticipaBanner() {
-  localStorage.setItem('h_stampa_rimando', String(Date.now() + UN_GIORNO_MS));
-  document.getElementById('stampa-banner').style.display = 'none';
-  showToast('Promemoria rinviato di 24h', 'info');
+function chiudiBannerSettimanale() {
+  localStorage.setItem('h_banner_sett_chiuso', String(Date.now()));
+  const b = document.getElementById('banner-settimanale');
+  if (b) b.style.display = 'none';
 }
-
-// "Genera ora" — porta al tab Report con preset corrente, poi genera PDF
 function apriReportPerStampa() {
   document.getElementById('stampa-banner').style.display = 'none';
-  // Preset filtro al mese corrente
-  const now = new Date();
-  const mese = String(now.getMonth() + 1).padStart(2, '0');
+  const m = document.getElementById('modal-blocco-mensile');
+  if (m) m.classList.add('hidden');
+  const prev = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
   const selMese = document.getElementById('filter-month');
-  if (selMese) selMese.value = mese;
+  if (selMese) selMese.value = String(prev.getMonth() + 1).padStart(2, '0');
   const selArea = document.getElementById('filter-area');
   if (selArea) selArea.value = 'ALL';
-  // Vai al tab Report
   const tabReport = document.querySelector('[onclick*="history"]');
   if (tabReport) tabReport.click();
-  // Avvia la generazione PDF — la modale di conferma apparirà a fine
   setTimeout(function() { exportPDF(); }, 350);
 }
-
-// Modale di conferma — chiamata da exportPDF() a fine generazione
 function mostraConfermaStampa() {
-  // Mostra la modale solo se in effetti il banner sarebbe attivo
-  // (cioè è passata >=1 settimana dall'ultima conferma o dall'inizio account)
   if (currentRole === 'superadmin') return;
-  const ora = Date.now();
-  const inizioAccount = parseInt(localStorage.getItem('h_data_inizio_account') || '0');
-  const ultimaConferma = parseInt(localStorage.getItem('h_stampa_confermata') || '0');
-  const giorniDaInizio = (ora - inizioAccount) / UN_GIORNO_MS;
-  const giorniDaConferma = ultimaConferma > 0 ? (ora - ultimaConferma) / UN_GIORNO_MS : 999;
-  if (giorniDaInizio < 7) return;
-  if (ultimaConferma > 0 && giorniDaConferma < 7) return;
-
   const m = document.getElementById('modal-conferma-stampa');
   if (m) m.classList.remove('hidden');
 }
-
+function scaricaPDFEConferma(doc, nomefile) {
+  doc.save(nomefile);
+  const prev = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+  segnaStampaConfermata(prev.getFullYear(), prev.getMonth() + 1);
+  localStorage.setItem('h_stampa_settimanale_ultima', String(Date.now()));
+  localStorage.setItem('h_banner_sett_chiuso', String(Date.now()));
+  const m = document.getElementById('modal-blocco-mensile');
+  if (m) m.classList.add('hidden');
+  ['stampa-banner','banner-settimanale'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
+  showToast('✓ PDF scaricato. Registro mensile archiviato!', 'success');
+}
 function confermaStampaFatta() {
-  localStorage.setItem('h_stampa_confermata', String(Date.now()));
-  localStorage.removeItem('h_stampa_rimando');
-  document.getElementById('modal-conferma-stampa').classList.add('hidden');
-  document.getElementById('stampa-banner').style.display = 'none';
-  showToast('✓ Stampa registrata. Prossimo promemoria fra 7 giorni.', 'success');
+  const prev = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+  segnaStampaConfermata(prev.getFullYear(), prev.getMonth() + 1);
+  localStorage.setItem('h_stampa_settimanale_ultima', String(Date.now()));
+  localStorage.setItem('h_banner_sett_chiuso', String(Date.now()));
+  ['modal-conferma-stampa','modal-blocco-mensile'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.classList.add('hidden');
+  });
+  ['stampa-banner','banner-settimanale'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
+  showToast('✓ Registro mensile archiviato. Buon lavoro!', 'success');
 }
-
 function rimandaConfermaStampa() {
-  document.getElementById('modal-conferma-stampa').classList.add('hidden');
-  showToast('Promemoria attivo: ti ricomparirà al prossimo accesso', 'info');
+  const m = document.getElementById('modal-conferma-stampa');
+  if (m) m.classList.add('hidden');
+  if (isBloccoStampa()) setTimeout(mostraBloccoMensile, 400);
+}
+async function registraServiceWorkerNotifiche() {
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('sw-haccp.js');
+    await new Promise(resolve => {
+      if (reg.active) { resolve(); return; }
+      const sw = reg.installing || reg.waiting;
+      if (!sw) { resolve(); return; }
+      sw.addEventListener('statechange', function h() {
+        if (sw.state === 'activated') { sw.removeEventListener('statechange', h); resolve(); }
+      });
+    });
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+    const ora = new Date();
+    const ultimoGiorno = new Date(ora.getFullYear(), ora.getMonth() + 1, 0);
+    ultimoGiorno.setHours(9, 0, 0, 0);
+    if (ultimoGiorno.getTime() > Date.now() && reg.active) {
+      reg.active.postMessage({
+        type: 'SCHEDULE_NOTIFICA_MENSILE',
+        timestamp: ultimoGiorno.getTime(),
+        mese: ora.toLocaleString('it-IT', { month: 'long', year: 'numeric' })
+      });
+    }
+    if ('periodicSync' in reg) {
+      try {
+        const s = await navigator.permissions.query({ name: 'periodic-background-sync' });
+        if (s.state === 'granted') await reg.periodicSync.register('haccp-alarm-check', { minInterval: 3600000 });
+      } catch(_) {}
+    }
+  } catch(e) { console.warn('[SW HACCP] registrazione fallita:', e); }
 }
 
-// ═══════════════════════════════════════════════════════════════
 // RESET (solo Admin)
 // ═══════════════════════════════════════════════════════════════
 async function resetRegistrazioni() {
