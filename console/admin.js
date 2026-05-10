@@ -600,6 +600,21 @@ function exportAuditCSV() {
   showToast('CSV scaricato', 'success');
 }
 
+async function clearAudit() {
+  const azienda_id = document.getElementById('audit-client').value;
+  if (!azienda_id) { showToast('Seleziona prima un cliente dal filtro', 'warning'); return; }
+  const cliente = allClients.find(c => c.azienda_id === azienda_id);
+  const nome = cliente ? cliente.nome_ristorante : azienda_id;
+  if (!confirm(`Eliminare TUTTI i log audit di "${nome}"? L'operazione è irreversibile.`)) return;
+  try {
+    const r = await callAdminApi('clear_audit', { azienda_id });
+    showToast(`✓ ${r.deleted} log eliminati per ${nome}`, 'success');
+    lastAuditResults = [];
+    renderAuditTable();
+    document.getElementById('audit-count').textContent = '0 record';
+  } catch(e) { showToast('Errore: ' + e.message, 'error'); }
+}
+
 // ========== CESTINO ==========
 let lastTrashResults = [];
 let lastTrashTable = null;
@@ -640,6 +655,25 @@ async function doRestore(id) {
     await callAdminApi('restore_record', { table_name: lastTrashTable, id });
     showToast('✓ Record ripristinato', 'success');
     await loadTrash();
+  } catch(e) { showToast('Errore: ' + e.message, 'error'); }
+}
+
+async function clearTrash() {
+  const azienda_id = document.getElementById('trash-client').value;
+  const table_name = document.getElementById('trash-table').value;
+  if (!azienda_id) { showToast('Seleziona prima un cliente', 'warning'); return; }
+  if (!lastTrashResults.length) { showToast('Il cestino è già vuoto', 'warning'); return; }
+  const cliente = allClients.find(c => c.azienda_id === azienda_id);
+  const nome = cliente ? cliente.nome_ristorante : azienda_id;
+  const tabLabel = table_name || 'tutte le tabelle';
+  if (!confirm(`Svuotare DEFINITIVAMENTE il cestino di "${nome}" (${tabLabel})?
+I record eliminati non potranno essere recuperati.`)) return;
+  try {
+    const r = await callAdminApi('empty_trash', { azienda_id, table_name });
+    showToast(`✓ ${r.deleted} record eliminati definitivamente`, 'success');
+    lastTrashResults = [];
+    renderTrashTable();
+    document.getElementById('trash-count').textContent = '0 record nel cestino';
   } catch(e) { showToast('Errore: ' + e.message, 'error'); }
 }
 
