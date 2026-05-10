@@ -29,6 +29,24 @@
   }
   .terms-text p { margin-bottom: 8px; }
   .terms-text ul li { line-height: 1.8; }
+
+  /* Fix scroll su desktop */
+  #terms-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 20px 16px;
+    background: rgba(15,23,42,0.85);
+    z-index: 999;
+  }
+  .terms-card {
+    width: 100%;
+    max-width: 600px;
+    margin: auto;
+  }
 </style>
 </head>
 <body>
@@ -99,8 +117,8 @@
 </div>
 
 <!-- DISCLAIMER LEGALE OBBLIGATORIO -->
-<div id="terms-screen" style="display:none;">
-  <div class="terms-card">
+<div id="terms-screen" style="display:none;overflow-y:auto;">
+  <div class="terms-card" style="max-height:none;margin:auto;">
     <div class="terms-icon">⚖️</div>
     <h2>Informativa e Dichiarazione di Responsabilità</h2>
     <p class="terms-sub">Leggi attentamente prima di accedere al servizio</p>
