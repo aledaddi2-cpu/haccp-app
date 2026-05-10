@@ -404,7 +404,7 @@
     <span class="setup-pill" onclick="setSetupTab('zone',this)">📍 Zone</span>
     <span class="setup-pill" onclick="setSetupTab('anagrafica',this)">🏢 Anagrafica</span>
     <span class="setup-pill" onclick="setSetupTab('orari',this)">⏰ Orari</span>
-    <span class="setup-pill setup-pill-danger" onclick="setSetupTab('zona',this)">⚠️ Zona pericolosa</span>
+    <span class="setup-pill setup-pill" onclick="setSetupTab('zona',this)">🔧 Manutenzione</span>
   </div>
 
   <!-- TAB: Apparecchi -->
@@ -526,7 +526,7 @@
 
   <!-- TAB: Zona pericolosa -->
   <div id="setup-tab-zona" class="setup-tab">
-    <div class="section-title" style="margin-top:8px;color:var(--red);">⚠️ Zona pericolosa</div>
+    <div class="section-title" style="margin-top:8px;">🔧 Manutenzione</div>
     <p style="font-size:11px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">
       Le operazioni qui sotto sono <b>irreversibili</b> e cancellano <b>solo i dati della tua azienda</b>.
       I dati degli altri clienti del servizio non vengono toccati.
@@ -537,7 +537,7 @@
       <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">
         Cancella temperature, azioni correttive e firme. Apparecchi, operatori, configurazione e orari restano.
       </p>
-      <button onclick="resetRegistrazioni()" style="width:100%;padding:11px;background:#e53935;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;">
+      <button onclick="resetRegistrazioni()" style="width:auto;padding:11px 28px;background:#e53935;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;display:block;margin:0 auto;">
         Elimina registrazioni
       </button>
     </div>
@@ -547,7 +547,7 @@
       <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">
         Cancella <b>tutto</b>: registrazioni, apparecchi, operatori, slot orari, dati anagrafici. L'account resta attivo ma vuoto.
       </p>
-      <button onclick="resetTutto()" style="width:100%;padding:11px;background:#b71c1c;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;">
+      <button onclick="resetTutto()" style="width:auto;padding:11px 28px;background:#b71c1c;color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;display:block;margin:0 auto;">
         Reset completo
       </button>
     </div>
