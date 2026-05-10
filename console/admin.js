@@ -171,13 +171,12 @@ async function openESPModal(userId, aziendaId) {
   document.getElementById('modal-esp').classList.remove('hidden');
   
   try {
-    const { data: apparecchi, error } = await sb.from('apparecchi').select('id, name, type, area').eq('azienda_id', aziendaId);
-    if (error) throw error;
-    if (!apparecchi.length) {
+    const { apparecchi } = await callAdminApi('list_apparecchi', { azienda_id: aziendaId });
+    if (!apparecchi || !apparecchi.length) {
       document.getElementById('esp-device-list').innerHTML = '<div class="text-center py-4 text-slate-400">Nessun apparecchio configurato per questo cliente.</div>';
       return;
     }
-    const { data: tokens } = await sb.from('device_tokens').select('apparecchio_id, token').eq('azienda_id', aziendaId);
+    const { tokens } = await callAdminApi('list_device_tokens', { azienda_id: aziendaId });
     const tokenMap = new Map();
     if (tokens) tokens.forEach(t => tokenMap.set(t.apparecchio_id, t.token));
     
@@ -258,13 +257,12 @@ async function generateDeviceToken(apparecchioId, aziendaId, btn) {
   btn.textContent = '⏳...';
   try {
     const token = crypto.randomUUID ? crypto.randomUUID() : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c/4).toString(16));
-    const { error } = await sb.from('device_tokens').upsert({
+    await callAdminApi('upsert_device_token', {
       azienda_id: aziendaId,
       apparecchio_id: apparecchioId,
       token: token,
       enabled: true
-    }, { onConflict: 'azienda_id, apparecchio_id' });
-    if (error) throw error;
+    });
     
     const tokenDiv = document.getElementById(`token-${apparecchioId}`);
     if (tokenDiv) {
