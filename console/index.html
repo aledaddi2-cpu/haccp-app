@@ -176,7 +176,7 @@
         <div class="col-span-2"><label class="text-xs font-bold text-slate-600 block mb-1">Nome ristorante <span class="text-red-500">*</span></label><input id="cf-nome" type="text" placeholder="Es: Trattoria Da Mario" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"></div>
         <div><label class="text-xs font-bold text-slate-600 block mb-1">Telefono</label><input id="cf-tel" type="text" placeholder="+39 333 1234567" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"></div>
         <div><label class="text-xs font-bold text-slate-600 block mb-1">CallMeBot API Key</label><input id="cf-cmb" type="text" placeholder="es. 1234567" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"></div>
-        <div><label class="text-xs font-bold text-slate-600 block mb-1">Piano <span class="text-red-500">*</span></label><select id="cf-piano" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white"><option value="14.99_manuale">14.99€ Manuale</option><option value="19.99_esp32">19.99€ ESP32 + WA Messaggio</option><option value="24.99_esp32_plus">24.99€ ESP32 + WA+Chiamata</option></select></div>
+        <div><label class="text-xs font-bold text-slate-600 block mb-1">Piano <span class="text-red-500">*</span></label><select id="cf-piano" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white"><option value="14.99_basic">14.99€ — Basic (solo dati + PDF)</option><option value="24.99_standard">24.99€ — Standard (fino a 2 ESP32 + WA)</option><option value="34.99_pro">34.99€ — Pro (fino a 5 ESP32 + WA + Chiamate)</option><option value="44.99_business">44.99€ — Business (ESP32 illimitati + WA + Chiamate)</option></select></div>
         <div><label class="text-xs font-bold text-slate-600 block mb-1">Mesi iniziali</label><select id="cf-mesi" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white"><option value="1">1 mese</option><option value="3">3 mesi</option><option value="6">6 mesi</option><option value="12">12 mesi</option></select></div>
         <div class="col-span-2"><label class="text-xs font-bold text-slate-600 block mb-1">Indirizzo</label><input id="cf-indirizzo" type="text" placeholder="Opzionale" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"></div>
         <div class="col-span-2"><label class="text-xs font-bold text-slate-600 block mb-1">P.IVA</label><input id="cf-piva" type="text" placeholder="Opzionale" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"></div>
@@ -218,9 +218,10 @@
       <div>
         <label class="text-xs font-bold text-slate-600 block mb-1">Piano</label>
         <select id="ef-piano" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white" onchange="toggleWaNotifTipo()">
-          <option value="14.99_manuale">14.99€ — Manuale (no WA)</option>
-          <option value="19.99_esp32">19.99€ — ESP32 + WA Messaggio</option>
-          <option value="24.99_esp32_plus">24.99€ — ESP32 + WA Msg + Chiamata</option>
+          <option value="14.99_basic">14.99€ — Basic (solo dati + PDF)</option>
+          <option value="24.99_standard">24.99€ — Standard (fino a 2 ESP32 + WA)</option>
+          <option value="34.99_pro">34.99€ — Pro (fino a 5 ESP32 + WA + Chiamate)</option>
+          <option value="44.99_business">44.99€ — Business (ESP32 illimitati + WA + Chiamate)</option>
         </select>
       </div>
       <div id="ef-wa-tipo-block" style="display:none;">
