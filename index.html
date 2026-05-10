@@ -9,6 +9,27 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="style.css">
+<style>
+  /* ── Informativa legale ── */
+  .terms-section {
+    background: #f0f4ff;
+    border-left: 3px solid #1e40af;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 13px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    line-height: 1.65;
+    color: #374151;
+  }
+  .terms-section-title {
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 5px;
+    font-size: 12px;
+  }
+  .terms-text p { margin-bottom: 8px; }
+  .terms-text ul li { line-height: 1.8; }
+</style>
 </head>
 <body>
 
@@ -81,22 +102,48 @@
 <div id="terms-screen" style="display:none;">
   <div class="terms-card">
     <div class="terms-icon">⚖️</div>
-    <h2>Termini di servizio</h2>
-    <p class="terms-sub">Per attivare l'app accetta le condizioni di utilizzo</p>
+    <h2>Informativa e Dichiarazione di Responsabilità</h2>
+    <p class="terms-sub">Leggi attentamente prima di accedere al servizio</p>
     <div class="terms-text">
-      Il sistema è un supporto tecnologico e <b>non sostituisce gli obblighi di controllo manuale HACCP</b>.
-      Il fornitore non è responsabile per perdite di merce dovute a guasti meccanici, mancanza di corrente
-      o di connessione internet. L'utente accetta che la responsabilità del monitoraggio resta in capo
-      al titolare dell'attività.
+      <p style="margin-bottom:10px;">Benvenuto nell'applicazione per la gestione delle rilevazioni termometriche. La presente applicazione è progettata come strumento di supporto tecnico per la redazione e l'archiviazione della documentazione relativa al piano di autocontrollo, in conformità ai principi del Sistema HACCP (Hazard Analysis and Critical Control Points) e ai sensi del <strong>Regolamento (CE) n. 852/2004</strong>.</p>
+      <p style="margin-bottom:8px;">L'utente, accedendo al servizio, prende atto e accetta quanto segue:</p>
+
+      <div class="terms-section">
+        <div class="terms-section-title">📋 Ruolo dell'Applicativo</div>
+        Il software funge esclusivamente da <strong>supporto digitale</strong> per la raccolta dati. L'utilizzo dell'applicazione non sostituisce in alcun modo la figura del Responsabile dell'Industria Alimentare (RIA) o del Responsabile del Piano di Autocontrollo, i quali restano gli unici garanti della sicurezza alimentare dinanzi alle autorità competenti.
+      </div>
+
+      <div class="terms-section">
+        <div class="terms-section-title">👁 Responsabilità della Vigilanza</div>
+        È responsabilità esclusiva del titolare della struttura assicurarsi della corretta esecuzione delle procedure di monitoraggio. L'applicazione <strong>non solleva l'operatore</strong> dall'obbligo di verifica visiva e manuale qualora le circostanze lo richiedano.
+      </div>
+
+      <div class="terms-section">
+        <div class="terms-section-title">📡 Connettività e Sensori Wireless</div>
+        In caso di utilizzo di sensori wireless o sistemi di monitoraggio remoto, il corretto funzionamento degli stessi è strettamente dipendente dalla <strong>stabilità della rete locale</strong> (Wi-Fi/Ethernet) e della copertura internet della struttura.
+      </div>
+
+      <div class="terms-section">
+        <div class="terms-section-title">⚠️ Esclusione di Responsabilità per Disservizi Tecnici</div>
+        Lo sviluppatore e la proprietà dell'applicazione <strong>non potranno essere ritenuti responsabili</strong> per mancate rilevazioni, assenza di dati o mancata ricezione di notifiche di allarme derivanti da:
+        <ul style="margin:8px 0 0 16px;line-height:1.8;">
+          <li>Assenza o instabilità della connessione di rete;</li>
+          <li>Malfunzionamento dell'hardware (router, sensori, batterie scariche);</li>
+          <li>Cause di forza maggiore che impediscano la trasmissione telematica dei dati.</li>
+        </ul>
+      </div>
+
+      <p style="margin-top:10px;font-size:11px;line-height:1.6;">Il Responsabile della struttura si impegna pertanto a <strong>verificare periodicamente</strong> l'integrità del sistema di monitoraggio e la corretta registrazione dei dati nel registro digitale.</p>
     </div>
+
     <label class="terms-check">
       <input type="checkbox" id="terms-check" onchange="document.getElementById('terms-btn').disabled = !this.checked">
-      <span>Ho letto e accetto i termini sopra riportati</span>
+      <span>Ho letto e accetto integralmente i termini e le condizioni di responsabilità</span>
     </label>
     <button class="terms-btn" id="terms-btn" onclick="acceptTerms()" disabled>
-      Accetto e attivo il servizio →
+      ✓ Accetto e attivo il servizio →
     </button>
-    <p class="terms-foot">In caso di rifiuto, esci e contatta l'assistenza.</p>
+    <p class="terms-foot">In caso di rifiuto, esci dall'applicazione e contatta l'assistenza.<br>Questo documento è consultabile in qualsiasi momento nella sezione <strong>Setup → Note Legali</strong>.</p>
   </div>
 </div>
 
@@ -491,8 +538,63 @@
       ☁ Database: Supabase &nbsp;·&nbsp; Per cambiare password usa il link "Password dimenticata?" dalla schermata di login
     </p>
     <p class="sync-info" id="last-sync-label"></p>
+
+    <div class="separator" style="margin:16px 0;"></div>
+    <div class="section-title" style="margin-top:0;">📄 Note Legali</div>
+    <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;">
+      Consulta in qualsiasi momento l'informativa completa sulla responsabilità e l'utilizzo dell'applicazione.
+    </p>
+    <button onclick="document.getElementById('modal-note-legali').style.display='flex'" style="width:100%;padding:11px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;">
+      📄 Visualizza Informativa e Dichiarazione di Responsabilità
+    </button>
   </div>
 
+</div>
+
+<!-- MODAL NOTE LEGALI (consultabile dopo il login) -->
+<div id="modal-note-legali" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.25);">
+    <div style="position:sticky;top:0;background:#fff;padding:16px 20px 12px;border-bottom:1px solid #e5e7eb;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#1e293b;">⚖️ Informativa e Dichiarazione di Responsabilità</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px;">Reg. CE 852/2004 · HACCP Pro Cloud</div>
+      </div>
+      <button onclick="document.getElementById('modal-note-legali').style.display='none'" style="background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:18px;color:#64748b;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <div style="padding:20px;font-size:12px;line-height:1.7;color:#374151;">
+      <p style="margin-bottom:12px;">Benvenuto nell'applicazione per la gestione delle rilevazioni termometriche. La presente applicazione è progettata come strumento di supporto tecnico per la redazione e l'archiviazione della documentazione relativa al piano di autocontrollo, in conformità ai principi del Sistema HACCP e ai sensi del <strong>Regolamento (CE) n. 852/2004</strong>.</p>
+
+      <div style="background:#f8fafc;border-left:3px solid #1e40af;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-weight:700;color:#1e293b;margin-bottom:4px;">📋 Ruolo dell'Applicativo</div>
+        Il software funge esclusivamente da <strong>supporto digitale</strong> per la raccolta dati. L'utilizzo dell'applicazione non sostituisce la figura del Responsabile dell'Industria Alimentare (RIA) o del Responsabile del Piano di Autocontrollo, i quali restano gli unici garanti della sicurezza alimentare dinanzi alle autorità competenti.
+      </div>
+
+      <div style="background:#f8fafc;border-left:3px solid #1e40af;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-weight:700;color:#1e293b;margin-bottom:4px;">👁 Responsabilità della Vigilanza</div>
+        È responsabilità esclusiva del titolare della struttura assicurarsi della corretta esecuzione delle procedure di monitoraggio. L'applicazione <strong>non solleva l'operatore</strong> dall'obbligo di verifica visiva e manuale qualora le circostanze lo richiedano.
+      </div>
+
+      <div style="background:#f8fafc;border-left:3px solid #1e40af;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-weight:700;color:#1e293b;margin-bottom:4px;">📡 Connettività e Sensori Wireless</div>
+        In caso di utilizzo di sensori wireless o sistemi di monitoraggio remoto, il corretto funzionamento degli stessi è strettamente dipendente dalla <strong>stabilità della rete locale</strong> (Wi-Fi/Ethernet) e della copertura internet della struttura.
+      </div>
+
+      <div style="background:#fff7ed;border-left:3px solid #ea580c;border-radius:0 8px 8px 0;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-weight:700;color:#9a3412;margin-bottom:6px;">⚠️ Esclusione di Responsabilità per Disservizi Tecnici</div>
+        Lo sviluppatore e la proprietà dell'applicazione <strong>non potranno essere ritenuti responsabili</strong> per mancate rilevazioni, assenza di dati o mancata ricezione di notifiche di allarme derivanti da:
+        <ul style="margin:8px 0 0 16px;line-height:1.9;">
+          <li>Assenza o instabilità della connessione di rete;</li>
+          <li>Malfunzionamento dell'hardware (router, sensori, batterie scariche);</li>
+          <li>Cause di forza maggiore che impediscano la trasmissione telematica dei dati.</li>
+        </ul>
+      </div>
+
+      <p style="font-size:11px;color:#64748b;line-height:1.6;">Il Responsabile della struttura si impegna a <strong>verificare periodicamente</strong> l'integrità del sistema di monitoraggio e la corretta registrazione dei dati nel registro digitale.</p>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid #e5e7eb;text-align:right;">
+      <button onclick="document.getElementById('modal-note-legali').style.display='none'" style="padding:10px 24px;background:#1e293b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;">Chiudi</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast-wrap"></div>
