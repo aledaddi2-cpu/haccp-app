@@ -399,7 +399,7 @@
 <div id="screen-setup" class="screen">
 
   <!-- Sotto-tab a pillole -->
-  <div style="position:sticky;top:88px;z-index:10;background:var(--gray-bg);padding:6px 0;margin-bottom:12px;">
+  <div id="setup-pills" style="position:sticky;top:88px;z-index:10;background:var(--gray-bg);padding:6px 0;margin-bottom:12px;">
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
       <span class="setup-pill active" onclick="setSetupTab('apparecchi',this)">❄️ Apparecchi</span>
       <span class="setup-pill" onclick="setSetupTab('zone',this)">📍 Zone</span>
@@ -407,7 +407,7 @@
       <span class="setup-pill" onclick="setSetupTab('orari',this)">⏰ Orari</span>
     </div>
     <div style="display:flex;justify-content:center;margin-top:6px;">
-      <span class="setup-pill setup-pill" id="setup-pills" onclick="setSetupTab('zona',this)">🔧 Manutenzione</span>
+      <span class="setup-pill" onclick="setSetupTab('zona',this)">🔧 Manutenzione</span>
     </div>
   </div>
 
