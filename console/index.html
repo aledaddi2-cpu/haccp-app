@@ -11,7 +11,6 @@
 <style>
   body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
   .nav-grad { background: linear-gradient(135deg, #1e3a5f 0%, #2563a8 100%); }
-  /* Modal animato */
   .modal-bg { animation: fadeIn .15s ease; }
   .modal-card { animation: slideUp .2s ease; }
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
@@ -139,7 +138,7 @@
               <th class="py-3 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Scadenza</th>
               <th class="py-3 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Stato</th>
               <th class="py-3 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Azioni</th>
-            </tr>
+            </table>
           </thead>
           <tbody id="clienti-body">
             <tr><td colspan="7" class="p-8 text-center text-slate-400 text-sm">Caricamento…</td></tr>
@@ -211,7 +210,7 @@
                 <th class="py-3 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tabella</th>
                 <th class="py-3 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Operazione</th>
                 <th class="py-3 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Dettagli</th>
-              </tr>
+              </table>
             </thead>
             <tbody id="audit-body">
               <tr><td colspan="5" class="p-8 text-center text-slate-400 text-sm">Premi "Cerca" per visualizzare i log</td></tr>
@@ -456,6 +455,25 @@
       <button onclick="downloadQR()" class="mt-4 px-4 py-2 rounded-md bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold w-full">
         ⬇ Scarica PNG
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MODALE GESTIONE ESP32 (aggiunto)                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="modal-esp" class="hidden fixed inset-0 bg-black/50 modal-bg flex items-center justify-center p-4 z-40" onclick="closeModalBg(event,'modal-esp')">
+  <div class="bg-white rounded-xl modal-card w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div class="p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white">
+      <h3 class="font-bold text-lg">📡 Dispositivi ESP32 · <span id="esp-cliente-nome">—</span></h3>
+      <button onclick="closeModal('modal-esp')" class="text-slate-400 hover:text-slate-700 text-xl">✕</button>
+    </div>
+    <div class="p-5">
+      <p class="text-sm text-slate-600 mb-3">Genera un token per ogni apparecchio da associare al sensore ESP32. Il token verrà usato dal dispositivo per autenticarsi.</p>
+      <div id="esp-device-list"></div>
+      <div class="mt-4 text-xs text-slate-400 border-t pt-3">
+        ℹ️ L'ESP32, durante la configurazione via web, chiederà il <strong>Device Token</strong> e l'<strong>Endpoint</strong> (che è: <code class="bg-slate-100 px-1 rounded">https://nmpbrjnmsybpzwhtsola.supabase.co/functions/v1/ingest-temperature</code>).
+      </div>
     </div>
   </div>
 </div>
