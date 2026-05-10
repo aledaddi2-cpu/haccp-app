@@ -316,7 +316,7 @@ function generateQR(container, token) {
 // ========== CREATE ==========
 function openCreateModal() {
   ['cf-email','cf-pass','cf-nome','cf-tel','cf-cmb','cf-indirizzo','cf-piva'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('cf-piano').value = '14.99_manuale';
+  document.getElementById('cf-piano').value = '14.99_basic';
   document.getElementById('cf-mesi').value = '1';
   document.getElementById('cf-err').textContent = '';
   document.getElementById('cf-pass').value = generatePassword();
@@ -408,7 +408,7 @@ function openEditModal(userId) {
   document.getElementById('ef-nome').value = c.nome_ristorante || '';
   document.getElementById('ef-tel').value = c.telefono_whatsapp || '';
   document.getElementById('ef-cmb').value = c.callmebot_apikey || '';
-  document.getElementById('ef-piano').value = c.piano_abbonamento || '14.99_manuale';
+  document.getElementById('ef-piano').value = c.piano_abbonamento || '14.99_basic';
   toggleWaNotifTipo();
   const waNotifTipo = document.getElementById('ef-wa-notif-tipo');
   if (waNotifTipo) waNotifTipo.value = c.wa_notif_tipo || 'entrambi';
@@ -644,10 +644,10 @@ async function doRestore(id) {
 }
 
 // ========== HELPER WA ==========
-const PIANI_WA = ['19.99_esp32', '24.99_esp32_plus'];
+const PIANI_WA = ['24.99_standard', '34.99_pro', '44.99_business'];
 function pianoHasWA(val) { return PIANI_WA.includes(val); }
 function pianoBadge(val) {
-  const map = { '14.99_manuale': ['bg-blue-100 text-blue-800', '14.99 manuale'], '19.99_esp32': ['bg-green-100 text-green-800', '19.99 ESP32'], '24.99_esp32_plus': ['bg-purple-100 text-purple-800', '24.99 ESP32+'] };
+  const map = { '14.99_basic': ['bg-slate-100 text-slate-700', 'Basic 14.99'], '24.99_standard': ['bg-blue-100 text-blue-800', 'Standard 24.99'], '34.99_pro': ['bg-green-100 text-green-800', 'Pro 34.99'], '44.99_business': ['bg-purple-100 text-purple-800', 'Business 44.99'] };
   const [cls, label] = map[val] || ['bg-slate-100 text-slate-600', val || '—'];
   return `<span class="${cls} px-2 py-0.5 rounded-full text-[11px] font-bold">${label}</span>`;
 }
@@ -657,8 +657,8 @@ function toggleWaNotifTipo() {
   if (!piano || !block) return;
   block.style.display = pianoHasWA(piano.value) ? '' : 'none';
   const sel = document.getElementById('ef-wa-notif-tipo');
-  if (sel && piano.value === '19.99_esp32' && sel.value === 'entrambi') sel.value = 'solo_messaggio';
-  if (sel && piano.value === '24.99_esp32_plus' && sel.value === 'solo_messaggio') sel.value = 'entrambi';
+  if (sel && piano.value === '24.99_standard' && sel.value === 'entrambi') sel.value = 'solo_messaggio';
+  if (sel && (piano.value === '34.99_pro' || piano.value === '44.99_business') && sel.value === 'solo_messaggio') sel.value = 'entrambi';
 }
 
 init();
