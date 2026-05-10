@@ -411,8 +411,9 @@ function openEditModal(userId) {
   document.getElementById('ef-tel').value = c.telefono_whatsapp || '';
   document.getElementById('ef-cmb').value = c.callmebot_apikey || '';
   document.getElementById('ef-piano').value = c.piano_abbonamento || '14.99_manuale';
-  document.getElementById('ef-wa-notif-tipo').value = c.wa_notif_tipo || 'entrambi';
   toggleWaNotifTipo();
+  const waNotifTipo = document.getElementById('ef-wa-notif-tipo');
+  if (waNotifTipo) waNotifTipo.value = c.wa_notif_tipo || 'entrambi';
   document.getElementById('ef-note').value = c.note_admin || '';
   if (c.data_scadenza) {
     const d = new Date(c.data_scadenza);
