@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HACCP Pro · Admin Dashboard</title>
+<script>window.tailwind = { config: {} };</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js?v=2"></script>
 <style>
   body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
   .nav-grad { background: linear-gradient(135deg, #1e3a5f 0%, #2563a8 100%); }
-  /* Modal animato */
   .modal-bg { animation: fadeIn .15s ease; }
   .modal-card { animation: slideUp .2s ease; }
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
@@ -306,8 +306,9 @@
         <div>
           <label class="text-xs font-bold text-slate-600 block mb-1">Piano <span class="text-red-500">*</span></label>
           <select id="cf-piano" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white">
-            <option value="14.99_manuale">14.99€ Manuale</option>
-            <option value="24.99_automatico">24.99€ Automatico</option>
+            <option value="14.99_manuale">14.99€ — Manuale (inserimenti manuali, no WA)</option>
+            <option value="19.99_esp32">19.99€ — ESP32 + WA Messaggio</option>
+            <option value="24.99_esp32_plus">24.99€ — ESP32 + WA Messaggio + Chiamata</option>
           </select>
         </div>
         <div>
@@ -401,9 +402,18 @@
       </div>
       <div>
         <label class="text-xs font-bold text-slate-600 block mb-1">Piano</label>
-        <select id="ef-piano" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white">
-          <option value="14.99_manuale">14.99€ Manuale</option>
-          <option value="24.99_automatico">24.99€ Automatico</option>
+        <select id="ef-piano" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white" onchange="toggleWaNotifTipo()">
+          <option value="14.99_manuale">14.99€ — Manuale (no WA)</option>
+          <option value="19.99_esp32">19.99€ — ESP32 + WA Messaggio</option>
+          <option value="24.99_esp32_plus">24.99€ — ESP32 + WA Msg + Chiamata</option>
+        </select>
+      </div>
+      <div id="ef-wa-tipo-block" style="display:none;">
+        <label class="text-xs font-bold text-slate-600 block mb-1">Tipo notifica WhatsApp <span class="text-purple-600">(piani 19.99 e 24.99)</span></label>
+        <select id="ef-wa-notif-tipo" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-white">
+          <option value="entrambi">📲 Messaggio + 📞 Chiamata vocale</option>
+          <option value="solo_messaggio">📲 Solo messaggio WhatsApp</option>
+          <option value="solo_chiamata">📞 Solo chiamata vocale</option>
         </select>
       </div>
       <div>
@@ -445,6 +455,25 @@
       <button onclick="downloadQR()" class="mt-4 px-4 py-2 rounded-md bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold w-full">
         ⬇ Scarica PNG
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MODALE GESTIONE ESP32 (aggiunto)                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="modal-esp" class="hidden fixed inset-0 bg-black/50 modal-bg flex items-center justify-center p-4 z-40" onclick="closeModalBg(event,'modal-esp')">
+  <div class="bg-white rounded-xl modal-card w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div class="p-5 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white">
+      <h3 class="font-bold text-lg">📡 Dispositivi ESP32 · <span id="esp-cliente-nome">—</span></h3>
+      <button onclick="closeModal('modal-esp')" class="text-slate-400 hover:text-slate-700 text-xl">✕</button>
+    </div>
+    <div class="p-5">
+      <p class="text-sm text-slate-600 mb-3">Genera un token per ogni apparecchio da associare al sensore ESP32. Il token verrà usato dal dispositivo per autenticarsi.</p>
+      <div id="esp-device-list"></div>
+      <div class="mt-4 text-xs text-slate-400 border-t pt-3">
+        ℹ️ L'ESP32, durante la configurazione via web, chiederà il <strong>Device Token</strong> e l'<strong>Endpoint</strong> (che è: <code class="bg-slate-100 px-1 rounded">https://nmpbrjnmsybpzwhtsola.supabase.co/functions/v1/ingest-temperature</code>).
+      </div>
     </div>
   </div>
 </div>
