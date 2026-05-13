@@ -364,16 +364,32 @@ function openQRModal(userId) {
     nome: c.nome_ristorante
   };
   currentQRPayload = JSON.stringify(payload);
-  document.getElementById('qr-nome').textContent = c.nome_ristorante;
+  document.getElementById('qr-nome').textContent = c.nome_ristorante || '—';
   document.getElementById('qr-payload').textContent = JSON.stringify(payload, null, 2);
-  // Genera il QR
+
   const target = document.getElementById('qr-target');
   target.innerHTML = '';
-  QRCode.toCanvas(currentQRPayload, { width: 240, margin: 1, errorCorrectionLevel: 'M' }, (err, canvas) => {
-    if (err) { target.textContent = 'Errore: ' + err.message; return; }
-    canvas.id = 'qr-canvas';
-    target.appendChild(canvas);
+
+  // Controlla che la libreria sia caricata
+  if (typeof QRCode === 'undefined') {
+    target.textContent = 'Errore: libreria QRCode non caricata. Ricarica la pagina.';
+    document.getElementById('modal-qr').classList.remove('hidden');
+    return;
+  }
+
+  // Nel browser è più affidabile creare prima il canvas e passarlo come primo argomento
+  const canvas = document.createElement('canvas');
+  canvas.id = 'qr-canvas';
+  target.appendChild(canvas);
+
+  QRCode.toCanvas(canvas, currentQRPayload, { width: 240, margin: 1, errorCorrectionLevel: 'M' }, (err) => {
+    if (err) {
+      target.innerHTML = '';
+      target.textContent = 'Errore generazione QR: ' + err.message;
+      console.error('QR generation error:', err, 'payload:', currentQRPayload);
+    }
   });
+
   document.getElementById('modal-qr').classList.remove('hidden');
 }
 
