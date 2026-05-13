@@ -19,6 +19,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
 let allClients = [];      // cache della lista completa
 let editingUserId = null; // user_id correntemente in modifica/rinnovo
 let currentQRPayload = null;
+let currentQRAziendaId = null;
 
 // ════════════════════════════════════════════════════════════════
 // INIT
@@ -196,8 +197,6 @@ function renderTable() {
           <div class="flex gap-1 justify-end">
             <button onclick="openRenewModal('${c.user_id}')" title="Rinnova"
                     class="p-1.5 rounded border border-slate-300 hover:bg-blue-50 hover:border-blue-400 text-sm">↻</button>
-            <button onclick="openQRModal('${c.user_id}')" title="QR Setup"
-                    class="p-1.5 rounded border border-slate-300 hover:bg-purple-50 hover:border-purple-400 text-sm">▦</button>
             <button onclick="openEditModal('${c.user_id}')" title="Modifica"
                     class="p-1.5 rounded border border-slate-300 hover:bg-slate-100 text-sm">✎</button>
             <button onclick="doResetPassword('${c.user_id}')" title="Reset password"
@@ -364,20 +363,20 @@ function openQRModal(userId) {
     nome: c.nome_ristorante
   };
   currentQRPayload = JSON.stringify(payload);
+  currentQRAziendaId = c.azienda_id;
+
   document.getElementById('qr-nome').textContent = c.nome_ristorante || '—';
   document.getElementById('qr-payload').textContent = JSON.stringify(payload, null, 2);
 
   const target = document.getElementById('qr-target');
   target.innerHTML = '';
 
-  // Controlla che la libreria sia caricata
   if (typeof QRCode === 'undefined') {
     target.textContent = 'Errore: libreria QRCode non caricata. Ricarica la pagina.';
     document.getElementById('modal-qr').classList.remove('hidden');
     return;
   }
 
-  // Nel browser è più affidabile creare prima il canvas e passarlo come primo argomento
   const canvas = document.createElement('canvas');
   canvas.id = 'qr-canvas';
   target.appendChild(canvas);
@@ -391,6 +390,67 @@ function openQRModal(userId) {
   });
 
   document.getElementById('modal-qr').classList.remove('hidden');
+  loadDevices(c.azienda_id);
+}
+
+async function loadDevices(aziendaId) {
+  const listEl = document.getElementById('qr-devices-list');
+  if (!aziendaId) {
+    listEl.innerHTML = '<p class="text-xs text-red-400">azienda_id mancante — controlla la Edge Function list_clients.</p>';
+    return;
+  }
+  listEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-2">Caricamento…</p>';
+
+  const { data, error } = await sb
+    .from('apparecchi')
+    .select('id, name, type, area, sonda_token, created_at')
+    .eq('azienda_id', aziendaId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    listEl.innerHTML = `<p class="text-xs text-red-500 text-center py-2">Errore: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    listEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Nessun dispositivo registrato</p>';
+    return;
+  }
+
+  listEl.innerHTML = data.map(d => `
+    <div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 gap-2">
+      <div class="min-w-0">
+        <div class="text-xs font-semibold text-slate-800 truncate">${escapeHtml(d.name || '—')}</div>
+        <div class="text-[11px] text-slate-500">${escapeHtml(d.type || '')}${d.area ? ' · ' + escapeHtml(d.area) : ''}</div>
+        <div class="text-[11px] mt-0.5">
+          ${d.sonda_token
+            ? '<span class="text-green-600 font-medium">● Collegato</span>'
+            : '<span class="text-slate-400">○ Non collegato</span>'}
+        </div>
+      </div>
+      ${d.sonda_token
+        ? `<button onclick="revokeToken('${d.id}')"
+                  class="shrink-0 text-[11px] px-2 py-1 rounded border border-red-300 hover:bg-red-50 text-red-600 font-bold">
+             ✕ Rimuovi
+           </button>`
+        : '<span class="shrink-0 text-[11px] text-slate-300">—</span>'
+      }
+    </div>
+  `).join('');
+}
+
+async function revokeToken(deviceId) {
+  if (!confirm('Rimuovere il token di questo dispositivo?\nL\'ESP32 dovrà essere riassociato tramite QR.')) return;
+
+  const { error } = await sb
+    .from('apparecchi')
+    .update({ sonda_token: null })
+    .eq('id', deviceId);
+
+  if (error) { showToast('Errore: ' + error.message, 'error'); return; }
+
+  showToast('✓ Token rimosso', 'success');
+  loadDevices(currentQRAziendaId);
 }
 
 function downloadQR() {
