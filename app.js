@@ -227,11 +227,11 @@ async function pullAzienda() {
 
 async function pullApparecchi() {
   const { data, error } = await sb.from('apparecchi')
-    .select('id, name, type, area')
+    .select('id, name, type, area, sonda_token')
     .eq('azienda_id', currentAziendaId)
     .order('area').order('name');
   if (error) throw error;
-  config = (data || []).map(r => ({ id:r.id, name:r.name, type:r.type, area:r.area }));
+  config = (data || []).map(r => ({ id:r.id, name:r.name, type:r.type, area:r.area, sonda_token:r.sonda_token||'' }));
 }
 
 async function pullOperatori() {
@@ -922,7 +922,8 @@ function renderSetup() {
     const d=document.createElement('div'); d.className='setup-item';
     d.innerHTML=`<div class="device-icon ${c.type}">${icons[c.type]||'❄️'}</div>
       <div class="setup-info"><div class="name">${c.name}</div>
-        <div class="sub">${c.type==='frigo'?'Frigo (+4°C)':'Gelo (-18°C)'} · ${areaNames[c.area]||c.area}</div></div>
+        <div class="sub">${c.type==='frigo'?'Frigo (+4°C)':'Gelo (-18°C)'} · ${areaNames[c.area]||c.area}</div>
+        ${c.sonda_token ? `<div class="sub" style="font-family:monospace;font-size:10px;color:var(--blue);">🔗 ${c.sonda_token}</div>` : '<div class="sub" style="font-size:10px;color:var(--text-muted);">⚠️ Nessun token sonda</div>'}</div>
       <button class="del-btn" onclick="deleteDevice(${i})">✕</button>`;
     list.appendChild(d);
   });
@@ -938,11 +939,13 @@ async function addDevice() {
       azienda_id: currentAziendaId,
       name,
       type: document.getElementById('new-type').value,
-      area: document.getElementById('new-area').value
+      area: document.getElementById('new-area').value,
+      sonda_token: document.getElementById('new-sonda-token').value.trim() || null
     });
     if (error) throw error;
     await pullApparecchi();
     document.getElementById('new-name').value='';
+    document.getElementById('new-sonda-token').value='';
     renderSetup(); renderDevices();
     showToast(`${name} aggiunto`,'success');
   } catch(e) { showToast('Errore: '+e.message,'error'); }

@@ -209,6 +209,11 @@
         <option value="gelo">🧊 Gelo (soglia -18°C)</option>
       </select>
     </div>
+    <div class="field">
+      <label>Token sonda <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(collega la sonda fisica a questo apparecchio)</span></label>
+      <input type="text" id="new-sonda-token" placeholder="Es: frigo-banco, cella-vini" style="font-family:monospace;">
+      <small style="color:var(--text-muted);font-size:11px;">Deve corrispondere al token configurato nell'ESP. Lascia vuoto se non usi sonde automatiche.</small>
+    </div>
     <button class="btn btn-primary" onclick="addDevice()">+ Aggiungi apparecchio</button>
   </div>
 
